@@ -31,13 +31,16 @@ Built on the work that McMarkis (https://github.com/Mhopkinsinc/NHLHockey) did t
 
 7. You have the choice of building 3 versions:
 
-    - For the Retail ROM, run `npm run build:retail` -- this includes the retail checksum validation check
+    - For the Retail ROM, run `npm run build:retail` -- this includes the retail checksum validation check (modified_nhl92.bin is the opcode corrected version)
 
-    - For the Rev A ROM, run `npm run build:reva` -- this includes the retail checksum validation check
+    - For the Rev A ROM, run `npm run build:reva` -- this includes the retail checksum validation check (modified_nhl92.bin is the opcode corrected version)
 
-    - For developing your own version, run `npm run build:dev` -- this does not include the retail checksum validation check (corrected from your original "retail" typo)
+    - For developing your own version, run `npm run build:dev` -- this does not include the retail checksum validation check  (modified_nhl92.bin is the opcode corrected version)
 
 # Documentation
+
+## Developing on this build
+You need to build using `build:dev` to avoid the checksum validation. If for whatever reason, you do want to enforce checksum validation on your build, you need to use the `generateChecksum.js` script. Also, you need to do 2 passes of the script & updating the checksums to end up with the correct checksum for both CRC16 and CRC32. The game will not start if checksum validation is enabled and the checksum is incorrect.
 
 ## Retail (REV=0) vs Rev A (REV=1)
 The original source code that was released was in a state that was post-retail code, and had some fixes (which are mentioned down below). I'm not sure if this is an undumped late print run retail version, but it might be. As such, I've resorted to calling this newly discovered version of NHL92 `Rev A`.
@@ -225,13 +228,11 @@ Binary at $116A6-$11C3D (extracted as z80_snd_drv.bin). Loaded via `Sound_LoadZ8
 - **Writes**: `WriteYM2612` ($118DF) / `WriteYM2612Part2` ($118EB) with delays (pop hl for timing).
 - **Instruments**: Patched to YM regs (e.g., $30+ for operators).
 
-Known Issues/Limitations
-- **PCM Overlaps**: Some FM patches overlap PCM (e.g., $10820 in fm_instrument_patch_sfx_31). Modding may corrupt audio due to hardcoded address.
-- **Z80 Sync**: Busy-waits and bus requests (`IO_Z80BUS`) can cause timing glitches if VBlank overloads.
-- **No MIDI**: Hardcoded tracks/SFX; no dynamic composition.
+## Known Issues/Limitations
+- **PCM Overlaps**: Some FM patches overlap PCM (e.g., $10820 in fm_instrument_patch_sfx_31). Modding may corrupt audio due to hardcoded address
 - **Checksum Sensitivity**: Builds require exact extracts for bitwise match; minor ROM diffs break validation.
 
-Modding Tips
+## Modding Tips
 - **Custom Music**: Edit `fmtune_pointer_table` / sequences. Add notes via freq tables; test envelopes for vibrato.
 - **New SFX**: Add to `sfx_pointer_table`, create handler (init channels, YM writes), cmdstream (.bin), PCM if needed.
 - **Testing**: Build `dev` for no checksum lock. Monitor shared RAM ($FFFFFE40+) for channel states.
