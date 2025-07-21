@@ -1,0 +1,538 @@
+
+		Technical Design Review
+
+			ICE HOCKEY
+			SEGA GENESIS
+			11/1990
+
+Introduction:
+	Vertically oriented, 3/4 top view rink brings a new look and
+	feel to ice hockey games.  Easy to understand play interface
+	and simplified rules let players have fun immediately, even if
+	they don't understand hockey.  On-ice fights capture the true
+	character of computer players and make them more human like.
+	Crowd interactions bring the arena to life and make the setting
+	more realistic and exciting.  Rules-based computer AI provides
+	for more human like reactions and easy modification.
+
+
+Technical Development Staff:
+	Coder:		Jim Simmons
+	Designers:	Scott Orr and Rich Hilleman
+	Artist: 	Brian O'Hara
+	Music/Sound:	Rob Hubbard
+
+Target Machine:
+	Sega Genesis
+
+Shipping Media:
+	4 mega bit ROM cartridge
+
+Development Environment:
+	Hardware:
+		Mac II with sprobe and ADS
+	Tools:
+		Mac II/sprobe development software
+		Color editor
+		Alice
+		Studio 8
+		Dpaint
+
+Schedules:
+		Milestone 1  12/24/90
+		Milestone 2  1/28/91   Included 1 week no work
+		Milestone 3  2/18/91
+		Milestone 4  3/11/91
+		Alpha	     4/1/91
+		Beta	     4/22/91
+		Final	     5/13/91
+
+Performance:
+	Average of 30 frames/sec.
+	Minimum of 15 frames/sec.
+
+Memory Requirements:
+	524,288 bytes of ROM
+	65536 bytes of CPU RAM
+	65536 bytes of video RAM
+
+Configuration Support and Details:
+	Graphic modes:
+		32x28 char displays
+		40x28 char displays
+	Input devices:
+		2 joysticks
+	Output devices:
+		rf modulator
+
+Memory Map:
+	ROM map
+	$00000-$00303 cpu vectors and startup code
+	$00304-$0bfff 68000 code
+	$0c000-$0ffff AI/team data tables
+	$10000-$6ffff Graphics
+	$6ffff-$7ff7f Sound
+
+	CPU RAM map
+	$0000-$7fff instant replay RAM
+	$8000-$81ff z-80 RAM (for sound)
+	$8200-$ffff 68000 variables RAM
+
+	PPU RAM map (for game)
+	$0000-$001f H scroll 
+	$0020-$abff 1375 char defs
+			350 for ice rink
+			256 for player sprites
+			200 for small/big font
+			569 for other stuff
+	$ac00-$afff sprite att
+	$b000-$bfff play map 3
+	$c000-$dfff play map 2
+	$e000-$ffff play map 1
+		
+
+Artists Software Tools:
+	Pre-Existing Code Packages:
+		Some parts of Madden or Montana may be modified
+		for use in hockey.
+	Tools to create:
+		Alice file conversion if necessary.
+
+EA Provided Software Tools and Data:
+	Development Tools:
+		Mac II 68000 assembler for sprobe
+		Color Editor
+		DDT
+		Stuio 8 with Alice
+	Code Packages:
+		Sound/music drivers
+		EA Logo
+		Checksum and header code
+	Data:
+		Sound effects and music.
+		NHL modeled team data.
+
+Derivative Work Portability Considerations:
+	None.
+
+Milestone 1
+	Description:
+		implement preliminary options screen
+		implement graphics drivers for scrolling rink and players
+		implement player dynamics/physics
+		implement player collision logic (other players or rink)
+		implement d-pad joy stick control of players
+	Implementation strategy:
+		Code from Montana will be adapted for hockey.  Most of
+		the work will involve interfacing with Alice format files,
+		and converting PC source to Mac II.
+	Technical risks:
+		none.
+	Major submodules:
+		Screen driver
+		Sprite driver
+		Collision detect
+		Collision response
+		Joystick input
+	Test for completion:
+		Milestone completion from description visually apparent.
+	Resource budget:
+		4k code
+	Schedule:
+		3 weeks,(12/24/90),December 24th,1990
+
+Milestone 2
+	Description:
+		enter generic player ratings data, each player has 16.
+		implement player ratings data for skating
+		implement puck logic
+		implement player passing
+		implement player shooting
+	Implementation strategy:
+		Player graphics will have 2 handles, one for their center
+		of mass over the ice, and another for their sticks blade
+		on the ice.  From these two handles puck collisions can
+		be determined and puck reactions calculated.
+		See script for interface details.
+	Technical risks:
+		none
+	Major submodules:
+		Puck controller
+		Launch puck (direction and speed calculations)
+	Test for completion:
+		Compare players skating response
+		Pass puck
+		Shoot puck
+	Resource budget:
+		4k code
+		8k data
+	Schedule:
+		3 weeks,(1/28/91),January 28th,1991
+
+Milestone 3
+	Description:
+		implement basic computer player AI defense
+		implement basic computer player AI offense
+		implement basic goalies logic
+	Implementation strategy:
+		Each player will have an assignment based on various game
+		conditions.  The player's skill ratings determine how well
+		he performs his assignment.
+	Technical risks:
+		This logic may need adjustment and tuning.
+	Major submodules:
+		player assignment logic defense
+		player assignment logic offense
+	Test for completion:
+		Watch computer controlled players response to puck and
+		other players in various game situations.
+	Resource budget:
+		8k code
+	Schedule:
+		3 weeks,(2/18/91),February 18th,1991
+
+Milestone 4
+	Description:
+		implement player body checking
+		implement player stick checking
+		implement player falling
+		implement fighting
+		implement score celebration
+		implement win celebration
+		implement crowd animations
+	Implementation strategy:
+		These modules are mostly animation sequences triggered
+		by joystick input, collisions, or AI conditions.
+		AI conditions to be determined with Rich's/Mike's input.
+	Technical risks:
+		Graphics are needed for completions
+	Major submodules:
+		Fighting
+		Score celebration assignment
+		Win celebration assignment
+		Crowd animation
+	Test for completion:
+		Milestone completion from description visually apparent
+	Resource budget:
+		4k code
+	Schedule:
+		3 weeks,(3/11/91),March 11th,1991
+
+Milestone 5
+	Description:
+		implement face off
+		implement line substitutions including face off line changes.
+		implement penalties/ref
+		implement instant replays
+		(see script for details)
+	Implementation strategy:
+		Face offs will be in a super imposed 1/4 screen window.
+		Instant replay will show 1-2 seconds of action prior to
+		various special events.
+	Technical risks:
+		Graphics for face off are needed for completion.
+		Graphics for ref are needed for completion.
+	Major submodules:
+		Face off
+		Player assignment for entering/exiting ice.
+		Ref controller
+		Instant replay recorder/player
+	Test for completion:
+		Milestone completion from description visually apparent
+	Resource budget:
+		4k code
+	Schedule:
+		3 weeks,(4/1/91),April 1st,1991
+
+Milestone 6
+	Description:
+		implement game scoreboard/pause
+		implement game stats screen
+		implement playoffs
+		implement ticker scores
+		implement hilites
+		(see script for details)
+	Implementation strategy:
+		Ticker scores and playoffs will be the same as Madden
+		including the password.
+		Hilites will be generated in real time using normal AI
+		except that any shot on goal will score.
+	Technical risks:
+		Hilites may need extra work to make them realistic/exciting.
+	Major submodules:
+		Show scoreboard
+		Show stats
+		Playoff/password logic
+		Show Hilite
+	Test for completion:
+		Milestone completion from description visually apparent.
+	Resource budget:
+		8k code
+	Schedule:
+		3 weeks,(4/22/91),April 22nd,1991
+
+Milestone 7
+	Description:
+		implement title/credits/options screens
+		implement scouting reports
+		implement sound effects and music
+		tuning
+	Implementation strategy:
+		Respond to testing results and adjust variables/logic.
+	Technical risks:
+		none.
+	Major submodules:
+		none
+	Test for completion:
+		Milestone completion from description visually apparent.
+	Resource budget:
+		4k code
+		4k data (scouting reports)
+	Schedule:
+		3 weeks,(5/13/91),May 13th,1991
+
+Graphic Art:
+
+	Ice Rink:
+		date:		milestone 1
+		mode:		32 column
+		size:		48x83 chars.
+		pal:		1 (transparent = ice color)
+		tiles:		350 max.
+
+		(tiles)*(32 bytes/tile) 	 =    memory requirement
+		(width)*(height)*(2 bytes/char)  =    memory requirement
+
+		350*32		= 12k bytes
+		48*83*2 	=  8k bytes rink 1
+		48*83*2		=  8k bytes rink 2 (smaller ice for Boston)
+		-------------------------
+		total		= 28k bytes
+
+	Team Logos: (for ice rink)
+		date:		milestone 5
+		mode:		32 column
+		size:		6x6 chars max.
+		pal:		in rink pal 1
+		tiles:		16*22 max.
+
+		16*22*32	= 11k
+		6*6*2*22	=  1k
+		-----------------------
+		total		= 12k
+
+	Sprite animations:
+		date:		milestone 5
+		mode:		32 column
+		size:		<16 chars. per frame
+		pal:		2/3 for players, 4 for other stuff
+		tiles:		7500 max.
+
+		Each frame will consist of no more than 24 chars
+		  and 3 sprites. In general 1 sprite for the body
+		  and one for the head.
+
+		Total frames	= 423
+
+		7500*32 	= 240k bytes (tile memory)
+		423*32		=  13k bytes (attribute memory)
+		--------------------------------------------
+		total		= 253k bytes
+
+		Frames: 	       dir.    frames.	 milestone graphics
+							 needed by:
+
+		Skating 	       8       4	 m-2
+		Gliding 	       8       1	 m-2
+		Turn 1 left	       8       1	 m-2
+		Turn 1 right	       8       1	 m-2
+		Turn 2 left	       8       1	 m-2
+		Turn 2 right	       8       1	 m-2
+
+		Skating w/puck	       8       4	 m-2
+		Gliding w/puck	       8       3	 m-2
+		Puck swing	       8       6	 m-2
+
+		Sweep check	       8       3	 m-4
+		Shoulder check	       8       1	 m-4
+		Hip check	       8       1	 m-4
+		Fall forwards	       8       2	 m-4
+		Fall backwards	       8       2	 m-4
+
+		Player celebrating     8       2	 m-4
+
+		High punch	       3       2	 m-4
+		Low punch	       3       2	 m-4
+		Set		       3       1	 m-4
+		Grab		       3       1	 m-4
+		Stick & gloves	       1       2	 m-4
+
+		Goalie skating	       8       2	 m-3
+		Goalie puck swing      8       4	 m-3
+		Goalie ready	       8       1	 m-3
+		Goalie glove save      8       1	 m-3
+		Goalie stick save      8       1	 m-3
+		Goalie stack left      8       1	 m-3
+		Goalie stack right     8       1	 m-3
+
+		Ref skating	       5       4	 m-5
+		Ref turning	       5       1	 m-5
+		Ref penalty	       8       1	 m-5
+		Ref wave off	       1       2	 m-5
+		Ref jumping	       5       1	 m-5
+		Ref charging	       1       3         m-5
+		Ref icing	       1       2         m-5
+		Ref slashing	       1       2         m-5
+		Ref tripping	       1       2         m-5
+		Ref roughing	       1       2         m-5
+		Ref hooking	       1       2         m-5
+
+		Snow		       1       3	 m-4
+		Puck		       1       2	 m-2
+
+	Face off graphics:
+		date:		milestone 5
+		mode:		32 column
+		size:		(12x10)*3 chars.
+		pal:		1-4
+		tiles:		200
+
+		200*32		=  7k bytes
+		(12*10*2)*3	=  1k bytes
+		-------------------------
+		total		=  8k bytes
+
+	Scoreboard:
+		date:		milestone 6
+		mode:		32 column
+		size:		24x16 chars.
+		pal:		4
+		tiles:		200
+
+		200*32		=  8k bytes
+		32*28*2 	=  2k bytes
+		-------------------------
+		total		=  10k bytes
+
+	Stats screen
+		date:		milestone 6
+		mode:		40 column
+		size:		40x28 chars.
+		pal:		1-4
+		tiles:		80
+
+		80*32		=  3k bytes
+		40*28*2 	=  2k bytes
+		-------------------------
+		total		=  5k bytes
+
+	Playoff graphics
+		date:		milestone 6
+		mode:		40 column
+		size:		40x28 chars.
+		pal:		1-4
+		tiles:		100
+
+		100*32		=  4k bytes
+		40*28*2 	=  2k bytes
+		-------------------------
+		total		=  6k bytes
+
+	Scouting Reports page
+		date:		milestone 7
+		mode:		40 column
+		size:		40x28 chars.
+		pal:		1-4
+		tiles:		600
+
+		600*32		= 20k bytes
+		40*28*2 	=  2k bytes
+		-------------------------
+		total		= 22k bytes
+
+	Team Logos: (for scouting reports)
+		date:		milestone 5
+		mode:		32 column
+		size:		3x3 chars max.
+		pal:		in rink pal 1
+		tiles:		8*22 max.
+
+		8*22*32		=  5k
+		3*3*2*22	=  1k
+		-----------------------
+		total		=  6k
+
+	Titlepage:
+		date:		milestone 7
+		mode:		32 column
+		size:		32x28 chars.
+		pal:		1-4
+		tiles:		600
+
+		600*32		= 20k bytes
+		32*28*2 	=  2k bytes
+		-------------------------
+		total		= 22k bytes
+
+	Optionspage:
+		date:		milestone 7
+		mode:		32 column
+		size:		32x28 chars.
+		pal:		1-4
+		tiles:		100
+
+		100*32		=  4k bytes
+		32*28*2 	=  2k bytes
+		-------------------------
+		total		=  6k bytes
+
+	Music:
+		60 second repeating theme song at start of game
+		45 second repeating theme song at end of periods 1&2
+		35 second repeating end of game song
+		7 second score in the net theme
+		7 second penalty-player in the box theme
+
+	Sound Effects:
+
+		Recommended FM sounds
+
+		Hit puck with stick
+		Puck hits ice (faceoff)
+		Puck bounces off boards and goal (2)
+		Player falls to ice
+		Players collide with each other
+		Player collides with boards and goal (2)
+		Score goal in net
+		End of period
+		Punch to body
+		Punch to head
+		Crowd cheers/boos
+		Whistle
+
+		Recommended digitized sounds
+
+		Yeah!
+		Cool!
+		Crowd cheers/boos
+		Referee voice effects (see Rich)
+		Fighting grunts
+
+notes:
+	player attributes:
+		Defensive inteligence
+		Offensive inteligence
+		Shot power
+		Shot accuracy
+		Playmaking
+		Weight
+		Speed
+		Agility
+		Check power
+		Agressiveness
+		Endurance
+
+	game modes:
+		Pre-Season
+		Regular Season
+		Playoffs

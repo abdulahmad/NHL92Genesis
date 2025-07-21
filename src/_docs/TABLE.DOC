@@ -1,0 +1,68 @@
+ SOUND EFFECT NUMBERS FOR SEGA HOCKEY
+	
+USE HIT (CHECK) SOUNDS SPARINGLY.
+
+USE LOTS OF PUCK SOUNDS (passing,slaps ).
+
+
+
+
+0  siren 	   	  ;0   -FM siren
+
+1  beep1		  ;1   -FM beep low pitch	
+2  beep2		  ;2   -FM beep high pitch	
+3  sam_newcheck1	  ;3   - sample new check sound 1	
+4  sam_newcheck2	  ;4   - ditto lower pitch
+5  hitpuck		  ;5   -FM hit puck
+
+6  hitboard		  ;6   -FM hit board  loud
+
+7  hitboard2		  ;7   -FM hit board lower pitch loud
+
+8  puck_faceoff		  ;8   -FM puck hits ice on face off
+9  bounce_goal		  ;9   -FM puck bounce off goal post
+10 whistle		  ;10  -FM whistle
+
+11 sam_pass1		  ;11  -sample pass shot #1
+
+12 sam_pass2		  ;12  -sample pass shot #2  more beef
+13 sam_puck2_slap	  ;13  -sample slap shot
+14 whiff shotFM		  ;14  -FM whiff (miss puck on slap shot)
+
+15 sam_hitboard1	  ;15  -sample player hits boards 1
+16 sam_hitboard2 	  ;16  - ditto at different playback rate
+17 sam_hitboard3 	  ;17  - ditto at different playback rate
+
+18 sam_hit1		  ;18  -sample player hits(checks) another player 1
+19 sam_hit2		  ;19  - ditto at different playback rate
+20 sam_hit3		  ;20  - ditto at different playback rate
+				
+21 sam_punch1 		  ;21  - sample fighting punch sound
+22 sam_punch2 		  ;22  - ditto at different playback rate
+23 sam_punch3 		  ;23  - ditto at different playback rate
+
+24 foghorn		  ;24  - FM fog horn end of period
+
+25 sam_crowdgoal	  ;25  - sample crowd cheer
+26 sam_booing		  ;26  - sample short booing
+27 hitboardvolm	          ;27  - hit board1 medium volume
+28 hitboardvols		  ;28  - hit board1 softer volume
+29 hitboard2volm	  ;29  - hit board2 medium volume
+30 hitboard2vols	  ;30  - hit board2 softer volume
+31 sam_ohh		  ;31  - sample crowd oohhh ,(missed !)	
+
+
+MUSIC NUMBERS:...
+
+
+0 = END OF PERIOD
+1 = SPLASH
+
+2 (unused/reserved)
+
+3 = END OF GAME
+
+
+4 PLAY OFF TREE SCREEN
+
+

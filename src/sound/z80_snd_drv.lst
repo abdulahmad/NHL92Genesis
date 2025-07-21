@@ -1,0 +1,502 @@
+; NHL 92 Sega Genesis Z80 Sound Driver
+; Address Range: 0x116A6 - 0x11C3D (Z80 RAM: 0x0000 - 0x0597)
+; Loaded by Sound_LoadZ80Program (0x11656) into Z80 RAM at $A00000
+; Fully Commented and Labeled
+; Controls YM2612 FM synthesizer for music and sound effects
+
+; Memory Definitions (Z80 RAM)
+YM2612_REG1         EQU $4000       ; YM2612 register select port (part 1)
+YM2612_DATA1        EQU $4001       ; YM2612 data port (part 1)
+YM2612_REG2         EQU $4002       ; YM2612 register select port (part 2)
+YM2612_DATA2        EQU $4003       ; YM2612 data port (part 2)
+FLAG_CONTROL        EQU $02A4       ; Control flag (0 = idle, 1 = process data)
+CHANNEL_FLAGS       EQU $00B0       ; Channel flags (6 bytes, one per FM channel)
+CHANNEL_DATA_PTRS   EQU $0073       ; Channel data pointers (6 channels, 2 bytes each)
+PSG_CONTROL         EQU $00C0       ; PSG control flag
+PSG_CHANNEL         EQU $00C4       ; PSG channel select
+PSG_CHANNEL_DATA    EQU $00BE       ; PSG channel data (4 bytes)
+Z80_STACK_TOP       EQU $1FFF       ; Top of Z80 stack
+
+; Z80 Sound Driver Entry Point
+; Initializes stack and jumps to main loop
+ROM:000116A6 ; =============== S U B R O U T I N E =======================================
+ROM:000116A6
+ROM:000116A6 Z80_SoundDriver:                        ; DATA XREF: Sound_LoadZ80Program+14
+ROM:000116A6                 jp      MainLoop        ; Jump to main sound processing loop
+ROM:000116A9
+ROM:000116A9 ; Reserved Space (padding or variables)
+ROM:000116A9                 ds.b    45, 0           ; Reserve 45 bytes (possibly for variables or stack)
+ROM:000116D6
+ROM:000116D6 ; Main Sound Processing Loop
+ROM:000116D6 MainLoop:                               ; CODE XREF: Z80_SoundDriver
+ROM:000116D6                 di                      ; Disable interrupts
+ROM:000116D7                 ld      sp, Z80_STACK_TOP ; Initialize stack pointer to $1FFF
+ROM:000116DA                 im      1               ; Set interrupt mode 1
+ROM:000116DC                 ld      a, (FLAG_CONTROL) ; Load control flag
+ROM:000116DF                 or      a               ; Check if flag is set
+ROM:000116E0                 jr      z, WaitForFlag   ; If zero, wait for flag to be set
+ROM:000116E2                 jp      m, ProcessSound ; If negative, process sound data
+ROM:000116E5                 ld      a, $2A          ; Load YM2612 register $2A (DAC data)
+ROM:000116E7                 ld      (YM2612_REG1), a ; Select DAC register
+ROM:000116E9                 ld      b, a            ; Save register value
+ROM:000116EA                 inc     hl              ; Increment data pointer (HL points to data)
+ROM:000116EB                 ld      a, (hl)         ; Load data byte
+ROM:000116EC                 or      a               ; Check if data is zero
+ROM:000116ED                 jr      z, ClearDAC     ; If zero, clear DAC output
+ROM:000116EF                 ld      (YM2612_DATA1), a ; Write data to DAC
+ROM:000116F1                 ld      a, b            ; Restore register $2A
+ROM:000116F2                 ld      (hl), a         ; Store register value back (why?)
+ROM:000116F3                 call    ProcessDAC      ; Process DAC data
+ROM:000116F6                 ld      hl, $056A       ; Load address of DAC counter
+ROM:000116F9                 inc     (hl)            ; Increment DAC counter
+ROM:000116FA                 call    UpdateDAC       ; Update DAC settings
+ROM:000116FD                 ld      hl, $8000       ; Load base address for channel data
+ROM:00011700                 ld      b, a            ; Save register value
+ROM:00011701                 inc     hl              ; Move to next byte
+ROM:00011702                 ld      a, (hl)         ; Load channel flag
+ROM:00011703                 or      a               ; Check if channel is active
+ROM:00011704                 jr      z, CheckPSG     ; If zero, skip to PSG processing
+ROM:00011706                 ld      (YM2612_DATA1), a ; Write to DAC data port
+ROM:00011708                 ld      a, (FLAG_CONTROL) ; Load control flag again
+ROM:0001170B                 cp      1               ; Check if flag is 1
+ROM:0001170D                 jr      z, ProcessChannels ; If 1, process FM channels
+ROM:0001170F                 push    hl              ; Save HL
+ROM:00011710                 call    ProcessFMChannels ; Process FM channels
+ROM:00011713                 pop     hl              ; Restore HL
+ROM:00011714                 ld      a, 1            ; Set flag value
+ROM:00011716                 ld      (FLAG_CONTROL), a ; Store 1 in control flag
+ROM:00011719                 ld      b, $19          ; Set loop counter for 25 iterations
+ROM:0001171B                 djnz    WaitLoop        ; Decrement B, loop if non-zero
+ROM:0001171D                 jr      MainLoop        ; Return to main loop
+ROM:0001171F
+ROM:0001171F WaitLoop:                               ; CODE XREF: MainLoop+45
+ROM:0001171F                 djnz    WaitLoop        ; Busy-wait loop (25 iterations)
+ROM:00011721                 jr      MainLoop        ; Return to main loop
+ROM:00011723
+ROM:00011723 CheckPSG:                               ; CODE XREF: MainLoop+2E
+ROM:00011723                 ld      a, (hl)         ; Load channel flag
+ROM:00011724                 cp      1               ; Check if PSG flag is set
+ROM:00011726                 jr      z, ClearPSG     ; If 1, clear PSG settings
+ROM:00011728                 ld      a, $2B          ; Load YM2612 register $2B (DAC enable)
+ROM:0001172A                 ld      (YM2612_REG1), a ; Select DAC enable register
+ROM:0001172C                 push    hl              ; Save HL
+ROM:0001172D                 pop     hl              ; Restore HL (redundant?)
+ROM:0001172E                 ld      a, 0            ; Load 0 (disable DAC)
+ROM:00011730                 ld      (YM2612_DATA1), a ; Write to DAC data port
+ROM:00011732                 ld      a, $FF          ; Load $FF (mute or reset flag)
+ROM:00011734                 ld      (FLAG_CONTROL), a ; Set control flag to $FF
+ROM:00011737                 ld      (PSG_CONTROL), a ; Set PSG control flag to $FF
+ROM:0001173A                 jr      MainLoop        ; Return to main loop
+ROM:0001173C
+ROM:0001173C ClearPSG:                               ; CODE XREF: MainLoop+50
+ROM:0001173C                 ld      a, $2B          ; Load YM2612 register $2B
+ROM:0001173E                 ld      (YM2612_REG1), a ; Select DAC enable register
+ROM:00011740                 push    hl              ; Save HL
+ROM:00011741                 pop     hl              ; Restore HL (redundant?)
+ROM:00011742                 ld      a, $80          ; Load $80 (enable DAC)
+ROM:00011744                 ld      (YM2612_DATA1), a ; Write to DAC data port
+ROM:00011746                 ld      a, 0            ; Load 0
+ROM:00011748                 ld      ($056A), a      ; Clear DAC counter
+ROM:0001174B                 call    UpdateDAC       ; Update DAC settings
+ROM:0001174E                 ld      h, 0            ; Clear H
+ROM:00011750                 ld      l, 0            ; Clear L
+ROM:00011752                 inc     hl              ; Set HL to 1
+ROM:00011753                 ld      a, 1            ; Load 1
+ROM:00011755                 ld      (FLAG_CONTROL), a ; Set control flag to 1
+ROM:00011758                 jp      MainLoop        ; Return to main loop
+ROM:0001175B
+ROM:0001175B ; Reserved Space or Data (possibly FM channel offsets)
+ROM:0001175B ChannelOffsets:                         ; Possible FM channel register offsets
+ROM:0001175B                 db      $30, $38, $34   ; Channel 1 registers
+ROM:0001175E                 db      $3C, $40, $48   ; Channel 2 registers
+ROM:00011761                 db      $44, $4C, $50   ; Channel 3 registers
+ROM:00011764                 db      $58, $54, $5C   ; Channel 4 registers
+ROM:00011767                 db      $60, $68, $64   ; Channel 5 registers
+ROM:0001176A                 db      $6C, $70, $78   ; Channel 6 registers
+ROM:0001176D                 db      $74, $7C, $80   ; Additional registers
+ROM:00011770                 db      $88, $84, $8C   ; Additional registers
+ROM:00011773                 db      $B0, $B4        ; Stereo and mode registers
+ROM:00011775
+ROM:00011775 ; Process FM Channels
+ROM:00011775 ProcessFMChannels:                      ; CODE XREF: MainLoop+3A
+ROM:00011775                 ld      ix, CHANNEL_DATA_PTRS ; Load base address of channel data pointers
+ROM:00011779                 ld      b, 0            ; Clear B (channel counter)
+ROM:0001177B                 call    ProcessChannel0 ; Process channel 0
+ROM:0001177E                 ld      ix, CHANNEL_DATA_PTRS + 8 ; Channel 1
+ROM:00011782                 ld      b, 1            ; Channel 1
+ROM:00011784                 call    ProcessChannel0 ; Process channel 1
+ROM:00011787                 ld      ix, CHANNEL_DATA_PTRS + 16 ; Channel 2
+ROM:0001178B                 ld      b, 2            ; Channel 2
+ROM:0001178D                 call    ProcessChannel0 ; Process channel 2
+ROM:00011790                 ld      ix, CHANNEL_DATA_PTRS + 24 ; Channel 3
+ROM:00011794                 ld      b, 4            ; Channel 3
+ROM:00011796                 call    ProcessChannel0 ; Process channel 3
+ROM:00011799                 ld      ix, CHANNEL_DATA_PTRS + 32 ; Channel 4
+ROM:0001179D                 ld      b, 5            ; Channel 4
+ROM:0001179F                 call    ProcessChannel0 ; Process channel 4
+ROM:000117A2                 ld      ix, CHANNEL_DATA_PTRS + 40 ; Channel 5
+ROM:000117A6                 ld      b, 6            ; Channel 5
+ROM:000117A8                 call    ProcessChannel0 ; Process channel 5
+ROM:000117AB                 ld      a, (PSG_CONTROL) ; Load PSG control flag
+ROM:000117AE                 or      a               ; Check if set
+ROM:000117AF                 jr      nz, UpdatePSG   ; If non-zero, update PSG
+ROM:000117B1                 ld      a, (PSG_CHANNEL) ; Load PSG channel select
+ROM:000117B4                 ld      b, a            ; Save to B
+ROM:000117B5                 ld      a, (PSG_CHANNEL_DATA) ; Load PSG data
+ROM:000117B8                 cp      b               ; Compare with channel select
+ROM:000117B9                 jr      z, ClearPSGData ; If equal, clear PSG data
+ROM:000117BB                 jr      c, SetPSGData   ; If carry, set PSG data
+ROM:000117BD                 ld      (PSG_CHANNEL), a ; Update PSG channel select
+ROM:000117C0                 ld      a, (PSG_CONTROL) ; Load PSG control flag
+ROM:000117C3                 ld      (FLAG_CONTROL), a ; Update control flag
+ROM:000117C6                 ld      a, $FF          ; Load $FF
+ROM:000117C8                 ld      (PSG_CONTROL), a ; Set PSG control to $FF
+ROM:000117CB                 ld      a, (PSG_CHANNEL_DATA + 2) ; Load PSG data byte
+ROM:000117CE                 ld      (FLAG_CONTROL), a ; Update control flag
+ROM:000117D1                 ld      a, (PSG_CONTROL) ; Load PSG control flag
+ROM:000117D4                 ld      (PSG_CHANNEL_DATA), a ; Update PSG channel data
+ROM:000117D7                 ld      a, $FF          ; Load $FF
+ROM:000117D9                 ld      (PSG_CONTROL), a ; Set PSG control to $FF
+ROM:000117DC                 ld      a, (PSG_CHANNEL_DATA + 4) ; Load PSG data byte
+ROM:000117DF                 ld      (YM2612_REG1), a ; Select YM2612 register
+ROM:000117E2                 ld      a, (PSG_CHANNEL_DATA) ; Load PSG data
+ROM:000117E5                 ld      (YM2612_REG2), a ; Select YM2612 part 2 register
+ROM:000117E8                 ld      a, (PSG_CHANNEL_DATA + 1) ; Load PSG data byte
+ROM:000117EB                 ld      (YM2612_REG1), a ; Select YM2612 register
+ROM:000117EE                 ld      a, (PSG_CHANNEL_DATA + 3) ; Load PSG data byte
+ROM:000117F1                 ld      (YM2612_DATA2), a ; Write to YM2612 part 2 data
+ROM:000117F4                 ret                     ; Return
+ROM:000117F5
+ROM:000117F5 ClearPSGData:                           ; CODE XREF: ProcessFMChannels+44
+ROM:000117F5                 ld      a, $FF          ; Load $FF
+ROM:000117F7                 ld      (PSG_CONTROL), a ; Set PSG control to $FF
+ROM:000117FA                 ret                     ; Return
+ROM:000117FB
+ROM:000117FB SetPSGData:                             ; CODE XREF: ProcessFMChannels+46
+ROM:000117FB                 bit     7, (ix + 0)     ; Check bit 7 of channel flag
+ROM:000117FF                 call    z, ProcessChannel1 ; If zero, process channel
+ROM:00011802                 bit     7, (ix + 3)     ; Check bit 7 of channel flag
+ROM:00011806                 jr      nz, ProcessChannel2 ; If set, process channel
+ROM:00011808                 bit     0, (ix + 3)     ; Check bit 0 of channel flag
+ROM:0001180C                 jr      z, CallProcessChannel3 ; If zero, call channel processing
+ROM:0001180E                 call    ProcessChannel3 ; Process channel 3
+ROM:00011811                 jr      ProcessChannel4 ; Continue to next channel
+ROM:00011813
+ROM:00011813 CallProcessChannel3:                    ; CODE XREF: SetPSGData+11
+ROM:00011813                 call    ProcessChannel4 ; Process channel 4
+ROM:00011816
+ROM:00011816 ProcessChannel2:                        ; CODE XREF: SetPSGData+D
+ROM:00011816                 bit     7, (ix + 4)     ; Check bit 7 of channel flag
+ROM:0001181A                 jr      nz, ProcessChannel5 ; If set, process channel
+ROM:0001181C                 call    UpdateChannel   ; Update channel settings
+ROM:0001181F
+ROM:0001181F ProcessChannel5:                        ; CODE XREF: SetPSGData+1F
+ROM:0001181F                 bit     7, (ix + 7)     ; Check bit 7 of channel flag
+ROM:00011823                 jr      nz, ProcessChannel4 ; If set, process channel
+ROM:00011825                 call    ProcessChannel6 ; Process channel 6
+ROM:00011828                 ret                     ; Return
+ROM:00011829
+ROM:00011829 ProcessChannel4:                        ; CODE XREF: SetPSGData+16
+ROM:00011829                                         ; ProcessChannel5+4
+ROM:00011829                 ld      b, c            ; Load channel index
+ROM:0001182A                 ld      h, (ix + 1)     ; Load high byte of data pointer
+ROM:0001182C                 ld      l, (ix + 2)     ; Load low byte of data pointer
+ROM:0001182E                 ld      de, PSG_CHANNEL_DATA + 1 ; Point to PSG data buffer
+ROM:00011831                 bit     2, (ix + 0)     ; Check bit 2 of channel flag
+ROM:00011835                 jr      nz, ProcessChannelData ; If set, process channel data
+ROM:00011837                 ld      a, (de)         ; Load data byte
+ROM:00011838                 cp      0               ; Check if zero
+ROM:0001183A                 jr      z, ClearChannelFlag ; If zero, clear channel flag
+ROM:0001183C                 add     a, c            ; Add channel index
+ROM:0001183D                 push    bc              ; Save BC
+ROM:0001183E                 ld      c, a            ; Set register value
+ROM:0001183F                 call    WriteYM2612     ; Write to YM2612
+ROM:00011842                 pop     bc              ; Restore BC
+ROM:00011843                 inc     hl              ; Increment data pointer
+ROM:00011844                 inc     de              ; Increment data buffer pointer
+ROM:00011845                 jr      UpdateChannelData ; Update channel data
+ROM:00011847
+ROM:00011847 ClearChannelFlag:                       ; CODE XREF: ProcessChannel4+11
+ROM:00011847                 ld      a, $FF          ; Load $FF
+ROM:00011849                 ld      (ix + 0), a     ; Set channel flag to $FF (mute)
+ROM:0001184C                 ld      b, c            ; Restore channel index
+ROM:0001184D                 ret                     ; Return
+ROM:0001184E
+ROM:0001184E ProcessChannelData:                     ; CODE XREF: ProcessChannel4+C
+ROM:0001184E                 ld      a, c            ; Load channel index
+ROM:0001184F                 and     3               ; Mask to get channel number (0-3)
+ROM:00011851                 ld      c, a            ; Update C
+ROM:00011852                 ld      a, (de)         ; Load data byte
+ROM:00011853                 cp      0               ; Check if zero
+ROM:00011855                 jr      z, ClearChannelFlag2 ; If zero, clear flag
+ROM:00011857                 add     a, c            ; Add channel index
+ROM:00011858                 push    bc              ; Save BC
+ROM:00011859                 ld      c, a            ; Set register value
+ROM:0001185A                 call    WriteYM2612Part2 ; Write to YM2612 part 2
+ROM:0001185D                 pop     bc              ; Restore BC
+ROM:0001185E                 inc     hl              ; Increment data pointer
+ROM:0001185F                 inc     de              ; Increment data buffer pointer
+ROM:00011860                 jr      UpdateChannelData ; Update channel data
+ROM:00011862
+ROM:00011862 ClearChannelFlag2:                      ; CODE XREF: ProcessChannelData+C
+ROM:00011862                 ld      b, c            ; Restore channel index
+ROM:00011863                 ld      a, $28          ; Load YM2612 register $28 (key on/off)
+ROM:00011865                 call    WriteYM2612     ; Write to YM2612
+ROM:00011868                 ld      a, c            ; Restore channel index
+ROM:00011869                 add     a, $F0          ; Adjust for key off
+ROM:0001186B                 ld      c, a            ; Update C
+ROM:0001186C                 ld      a, $28          ; Load key on/off register
+ROM:0001186E                 call    WriteYM2612     ; Write key off
+ROM:00011871                 ld      a, $FF          ; Load $FF
+ROM:00011873                 ld      (ix + 3), a     ; Set channel flag to $FF
+ROM:00011876                 ld      b, c            ; Restore channel index
+ROM:00011877                 ret                     ; Return
+ROM:00011878
+ROM:00011878 ProcessChannel3:                        ; CODE XREF: SetPSGData+13
+ROM:00011878                 ld      a, $28          ; Load YM2612 register $28
+ROM:0001187A                 call    WriteYM2612     ; Write to YM2612
+ROM:0001187D                 ld      a, $FF          ; Load $FF
+ROM:0001187F                 ld      (ix + 3), a     ; Set channel flag to $FF
+ROM:00011882                 ret                     ; Return
+ROM:00011883
+ROM:00011883 UpdatePSG:                              ; CODE XREF: ProcessFMChannels+3A
+ROM:00011883                 ld      b, c            ; Load channel index
+ROM:00011884                 ld      d, (ix + 5)     ; Load high byte of frequency
+ROM:00011886                 ld      a, $A4          ; Load YM2612 register $A4 (frequency high)
+ROM:00011888                 add     a, c            ; Adjust for channel
+ROM:00011889                 ld      c, a            ; Update C
+ROM:0001188A                 call    WriteYM2612     ; Write frequency high
+ROM:0001188D                 ld      d, (ix + 6)     ; Load low byte of frequency
+ROM:0001188F                 ld      a, $A0          ; Load YM2612 register $A0 (frequency low)
+ROM:00011891                 add     a, c            ; Adjust for channel
+ROM:00011892                 ld      c, a            ; Update C
+ROM:00011893                 call    WriteYM2612     ; Write frequency low
+ROM:00011896                 ld      a, $FF          ; Load $FF
+ROM:00011898                 ld      (ix + 4), a     ; Set channel flag to $FF
+ROM:0001189B                 ld      c, b            ; Restore channel index
+ROM:0001189C                 ret                     ; Return
+ROM:0001189D
+ROM:0001189D ProcessChannel1:                        ; CODE XREF: SetPSGData+4
+ROM:0001189D                 ld      a, c            ; Load channel index
+ROM:0001189E                 and     3               ; Mask to get channel number
+ROM:000118A0                 ld      c, a            ; Update C
+ROM:000118A1                 ld      b, c            ; Save channel index
+ROM:000118A2                 ld      d, (ix + 5)     ; Load high byte of frequency
+ROM:000118A4                 ld      a, $A4          ; Load YM2612 register $A4
+ROM:000118A6                 add     a, c            ; Adjust for channel
+ROM:000118A7                 ld      c, a            ; Update C
+ROM:000118A8                 call    WriteYM2612Part2 ; Write frequency high to part 2
+ROM:000118AB                 ld      d, (ix + 6)     ; Load low byte of frequency
+ROM:000118AD                 ld      a, $A0          ; Load YM2612 register $A0
+ROM:000118AF                 add     a, c            ; Adjust for channel
+ROM:000118B0                 ld      c, a            ; Update C
+ROM:000118B1                 call    WriteYM2612Part2 ; Write frequency low to part 2
+ROM:000118B4                 ld      a, $FF          ; Load $FF
+ROM:000118B6                 ld      (ix + 4), a     ; Set channel flag to $FF
+ROM:000118B9                 ld      c, b            ; Restore channel index
+ROM:000118BA                 ret                     ; Return
+ROM:000118BB
+ROM:000118BB ProcessChannel6:                        ; CODE XREF: ProcessChannel5+A
+ROM:000118BB                 bit     2, (ix + 0)     ; Check bit 2 of channel flag
+ROM:000118BF                 jr      nz, WriteVolume ; If set, write volume
+ROM:000118C1                 ld      a, $4C          ; Load YM2612 register $4C (total level)
+ROM:000118C3                 add     a, c            ; Adjust for channel
+ROM:000118C4                 ld      c, a            ; Update C
+ROM:000118C5                 ld      c, (ix + 7)     ; Load volume data
+ROM:000118C7                 call    WriteYM2612     ; Write to YM2612
+ROM:000118CA                 ld      a, $FF          ; Load $FF
+ROM:000118CC                 ld      (ix + 7), a     ; Set channel flag to $FF
+ROM:000118CF                 ret                     ; Return
+ROM:000118D0
+ROM:000118D0 WriteVolume:                            ; CODE XREF: ProcessChannel6+4
+ROM:000118D0                 ld      a, c            ; Load channel index
+ROM:000118D1                 add     a, $4C          ; Adjust for volume register
+ROM:000118D3                 ld      c, (ix + 7)     ; Load volume data
+ROM:000118D6                 call    WriteYM2612Part2 ; Write to YM2612 part 2
+ROM:000118D9                 ld      a, $FF          ; Load $FF
+ROM:000118DB                 ld      (ix + 7), a     ; Set channel flag to $FF
+ROM:000118DE                 ret                     ; Return
+ROM:000118DF
+ROM:000118DF WriteYM2612:                            ; CODE XREF: ProcessChannel4+16
+ROM:000118DF                                         ; ClearChannelFlag2+6 ...
+ROM:000118DF                 ld      (YM2612_REG1), a ; Write register select
+ROM:000118E1                 push    hl              ; Save HL
+ROM:000118E2                 pop     hl              ; Restore HL (busy-wait?)
+ROM:000118E3                 push    hl              ; Save HL
+ROM:000118E4                 pop     hl              ; Restore HL
+ROM:000118E5                 push    hl              ; Save HL
+ROM:000118E6                 pop     hl              ; Restore HL
+ROM:000118E7                 ld      a, c            ; Load data value
+ROM:000118E8                 ld      (YM2612_DATA1), a ; Write to data port
+ROM:000118EA                 ret                     ; Return
+ROM:000118EB
+ROM:000118EB WriteYM2612Part2:                       ; CODE XREF: ProcessChannelData+1C
+ROM:000118EB                                         ; ProcessChannel1+10 ...
+ROM:000118EB                 ld      (YM2612_REG2), a ; Write register select (part 2)
+ROM:000118ED                 push    hl              ; Save HL
+ROM:000118EE                 pop     hl              ; Restore HL
+ROM:000118EF                 push    hl              ; Save HL
+ROM:000118F0                 pop     hl              ; Restore HL
+ROM:000118F1                 push    hl              ; Save HL
+ROM:000118F2                 pop     hl              ; Restore HL
+ROM:000118F3                 ld      a, c            ; Load data value
+ROM:000118F4                 ld      (YM2612_DATA2), a ; Write to data port (part 2)
+ROM:000118F6                 ret                     ; Return
+ROM:000118F7
+ROM:000118F7 UpdateChannel:                          ; CODE XREF: ProcessChannel2+3
+ROM:000118F7                 ld      (YM2612_REG1), a ; Write register select
+ROM:000118F9                 push    hl              ; Save HL
+ROM:000118FA                 pop     hl              ; Restore HL
+ROM:000118FB                 push    hl              ; Save HL
+ROM:000118FC                 pop     hl              ; Restore HL
+ROM:000118FD                 push    hl              ; Save HL
+ROM:000118FE                 pop     hl              ; Restore HL
+ROM:000118FF                 ld      a, c            ; Load data value
+ROM:00011900                 ld      (YM2612_DATA2), a ; Write to data port (part 2)
+ROM:00011902                 ret                     ; Return
+ROM:00011903
+ROM:00011903 ClearDAC:                               ; CODE XREF: MainLoop+17
+ROM:00011903                 ld      a, $2A          ; Load YM2612 register $2A (DAC data)
+ROM:00011905                 ld      (YM2612_REG1), a ; Select DAC register
+ROM:00011907                 ld      a, 0            ; Load 0
+ROM:00011909                 ld      (YM2612_DATA1), a ; Clear DAC output
+ROM:0001190B
+ROM:0001190B ; FM Instrument Data (starts within Z80 program)
+ROM:0001190B InstrumentData:                         ; Possible FM instrument parameters
+ROM:0001190B                 db      $FD             ; Algorithm or feedback
+ROM:0001190C                 db      $7E, 0          ; Data byte and flag
+ROM:0001190E                 db      $FE, 0          ; Compare value
+ROM:00011910                 db      $28, 5          ; Conditional jump
+ROM:00011912                 db      $FD             ; Additional data
+ROM:00011913                 inc     hl              ; Increment pointer
+ROM:00011914                 ld      (YM2612_DATA1), a ; Write to DAC
+ROM:00011916                 ret                     ; Return (end of code section)
+ROM:00011917
+ROM:00011917 ; FM Instrument Definitions (continued)
+ROM:00011917 Instrument0:                            ; Instrument data block
+ROM:00011917                 db      $FF, $82, $C5, $FF, $FF, $12, 0
+ROM:0001191E                 db      $FF, $FF, 2, $C5, $FF, $FF, 0, 0
+ROM:00011926                 db      $FF, $FF, 2, $C5, $FF, $FF, 0, 0
+ROM:0001192E                 db      $FF, $FF, 2, $C5, $FF, $FF, $12, 0
+ROM:00011936                 db      $FF, $FF, 2, $C5, $FF, $FF, 0, 0
+ROM:0001193E                 db      $FF, $FF, 2, $C5, $FF, $FF, 0, 0
+ROM:00011946                 db      $FF, $FF, 2, $C5, $FF, $FF, 0, 0
+ROM:0001194E                 db      $FF, 0, $FF, 0
+ROM:00011952                 db      $20, $62, $10, $17, $0C, $12, $0A, $1F
+ROM:0001195A                 db      $1F, $1F, 7, 4, 4, 4, 4, 0
+ROM:00011962                 db      0, 0, 0, $F9, $F9, $F9, $F9, $0A
+ROM:0001196A                 db      $C0, 0, 0, 0, 0, 0, 0, $36
+ROM:00011972                 db      $43, 0, 1, $19, $20, $20, $0E, $5F
+ROM:0001197A                 db      $5C, $5D, $5F, 6, 9, 2, 5, 6
+ROM:00011982                 db      4, 1, 0, $23, $33, $13, 8, $28
+ROM:0001198A                 db      $C0, 0, 0, 0, 0, 0, 0, $22
+ROM:00011992                 db      $72, $72, $32, $13, $1A, $10, $1A, $10
+ROM:0001199A                 db      $11, $0D, $10, 8, 0, 6, 2, 0
+ROM:000119A2                 db      0, 0, 0, $37, 9, $27, 9, $2C
+ROM:000119AA                 db      $C0, 0, 0, 0, 0, 0, 0, 4
+ROM:000119B2                 db      $70, 0, 0, 0, $10, 8, $1F, $1F
+ROM:000119BA                 db      $1F, $1F, $0D, 0, $16, $0F, 0, $0F
+ROM:000119C2                 db      7, $14, $F5, $FA, $68, $FC, 2, $C0
+ROM:000119CA                 db      0, 0, 0, 0, 0, 0, $0F, 3
+ROM:000119D2                 db      1, 1, 0, 0, 0, 0, $1F, $1F
+ROM:000119DA                 db      $1F, $1F, 0, 3, $14, $18, 0, $0E
+ROM:000119E2                 db      8, $0E, 5, 8, $75, 8, $3C, $C0
+ROM:000119EA                 db      $FD, 0, 0, 0, 0, 0, $3C, $39
+ROM:000119F2                 db      0, $14, $19, $28, 0, $10, $DF, $1F
+ROM:000119FA                 db      $1F, $DF, 4, 5, 4, 1, 4, 4
+ROM:00011A02                 db      4, 2, $F7, 7, $17, $AC, $38, $C0
+ROM:00011A0A                 db      0, 0, 0, 0, 0, 0, $56, $15
+ROM:00011A12                 db      $10, $72, $2C, $2C, $17, $0E, $1F, $1F
+ROM:00011A1A                 db      $1F, $1F, 2, 3, 7, 0, 7, 7
+ROM:00011A22                 db      7, 6, $F0, $F5, $F6, $F8, $28, $C0
+ROM:00011A2A                 db      0, 0, 0, 0, 0, 0, $31, 1
+ROM:00011A32                 db      $10, $21, $39, $1A, $0E, $16, $1F, $1F
+ROM:00011A3A                 db      $5F, $1F, 3, 4, $1F, $1F, 7, 0
+ROM:00011A42                 db      $0A, 0, $0F, $0F, $0F, $0F, $2C, $C0
+ROM:00011A4A                 db      0, 0, 0, 0, 0, 0, $5F, $52
+ROM:00011A52                 db      7, 2, 0, $28, $1C, $0C, $1F, $1F
+ROM:00011A5A                 db      $1F, $9F, $15, $15, $15, $1F, $13, $0C
+ROM:00011A62                 db      $0D, $10, $26, $26, $36, 9, $3B, $C0
+ROM:00011A6A                 db      0, 0, 0, 0, 0, 0, 0, 4
+ROM:00011A72                 db      $7F, 0, 9, $12, $13, $0A, $1F, $1F
+ROM:00011A7A                 db      $1F, $1F, $0F, 0, $12, $11, 0, $0F
+ROM:00011A82                 db      7, 0, $FF, $FA, $68, $F9, $28, $C0
+ROM:00011A8A                 db      0, 0, 0, 0, 0, 0, 0, 2
+ROM:00011A92                 db      $70, 0, 0, 0, $13, 5, $1F, $1F
+ROM:00011A9A                 db      $1F, $1F, 8, 0, $12, $0C, 0, $0F
+ROM:00011AA2                 db      7, 0, $F5, $FA, $68, $FC, 2, $C0
+ROM:00011AAA                 db      0, 0, 0, 0, 0, 0, $30, $20
+ROM:00011AB2                 db      $40, $77, $0D, 0, $60, 7, $1F, $1F
+ROM:00011ABA                 db      $1F, $1F, 8, 0, $1F, $1F, $1F, 0
+ROM:00011AC2                 db      0, 0, 0, 9, $9F, 9, 9, $3A
+ROM:00011ACA                 db      $C0, 0, 0, 0, 0, 0, 0, $31
+ROM:00011AD2                 db      $20, $40, $77, 5, $7F, $7F, $0A, $11
+ROM:00011ADA                 db      0, 0, $0E, 0, $1F, $1F, $0C, 0
+ROM:00011AE2                 db      0, 0, 0, 9, $9F, $9F, $9A, $32
+ROM:00011AEA                 db      $C0, 0, 0, 0, 0, 0, 0, 0
+ROM:00011AF2                 db      2, $70, 0, $12, 0, $12, 5, $1F
+ROM:00011AFA                 db      $1F, $1F, $1F, 0, 0, $12, $0D, 0
+ROM:00011B02                 db      $0F, 7, 0, $F5, $FA, $68, $FC, $1A
+ROM:00011B0A                 db      $C0, 0, 0, 0, 0, 0, 0, 2
+ROM:00011B12                 db      2, 1, 1, $20, $30, $10, 7, $1F
+ROM:00011B1A                 db      $1F, $1F, $12, $1F, $1F, $1F, 0, 3
+ROM:00011B22                 db      0, 0, 0, $15, 5, $D5, $FA, $33
+ROM:00011B2A                 db      $C0, 0, 0, 0, 0, 0, 0, 0
+ROM:00011B32                 db      $F5, $F0, $FF, 0, 0, 0, 3, $D8
+ROM:00011B3A                 db      $88, $88, $88, 0, $1D, $1D, $1D, 7
+ROM:00011B42                 db      6, 6, 6, $D9, $99, $99, $F9, $3B
+ROM:00011B4A                 db      $C0, 0, 0, 0, 0, 0, 0, 1
+ROM:00011B52                 db      1, $31, $31, $12, 0, $0A, $0A, $4D
+ROM:00011B5A                 db      $10, $0F, $0F, 4, $1F, 3, 3, 0
+ROM:00011B62                 db      0, 4, 4, 7, $A9, $E8, $E7, $2D
+ROM:00011B6A                 db      $C0, 0, 0, 0, 0, 0, 0, $35
+ROM:00011B72                 db      $30, 0, $14, $2C, $50, 0, $0C, $DF
+ROM:00011B7A                 db      $1F, $1F, $DF, 4, 5, 4, 1, 4
+ROM:00011B82                 db      4, 4, 2, $F5, 5, $15, $85, $21
+ROM:00011B8A                 db      $C0, 0, 0, 0, 0, 0, 0, $56
+ROM:00011B92                 db      $15, $10, $72, $23, $2F, $18, $0C, $1F
+ROM:00011B9A                 db      $1F, $1F, $1F, 2, 3, 2, 3, 7
+ROM:00011BA2                 db      7, 6, 5, $F0, $F5, $F6, $F8, $28
+ROM:00011BAA                 db      $C0, 0, 0, 0, 0, 0, 0, 0
+ROM:00011BB2                 db      2, $70, 0, 0, 0, $13, 9, $1F
+ROM:00011BBA                 db      $1F, $1F, $1F, 8, 0, $12, $0C, 0
+ROM:00011BC2                 db      $0F, 7, 0, $F5, $FA, $68, $FC, 2
+ROM:00011BCA                 db      $C0, 0, 0, 0, 0, 0, 0, 0
+ROM:00011BD2                 db      2, $70, 0, 0, 0, $13, $0D, $1F
+ROM:00011BDA                 db      $1F, $1F, $1F, 8, 0, $12, $0C, 0
+ROM:00011BE2                 db      $0F, 7, 0, $F5, $FA, $68, $FC, 2
+ROM:00011BEA                 db      $C0, 0, 0, 0, 0, 0, 0, $56
+ROM:00011BF2                 db      $15, $10, $72, $28, $43, $16, $0D, $1F
+ROM:00011BFA                 db      $1F, $1F, $1F, 3, 3, 8, 8, 7
+ROM:00011C02                 db      7, 6, 5, $F0, $F5, $F6, $F8, $28
+ROM:00011C0A                 db      $C0, 0, 0, 0, 0, 0, 0, 0
+ROM:00011C12                 db      0, 0, 0
+ROM:00011C15
+ROM:00011C15 ProcessChannel0:                        ; CODE XREF: ProcessFMChannels+6 ...
+ROM:00011C15                 ld      a, 0            ; Load 0
+ROM:00011C17                 ld      ($6000), a      ; Write to port $6000 (bank select?)
+ROM:00011C1A                 bit     7, a            ; Check bit 7
+ROM:00011C1C                 ld      ($6000), a      ; Write to port $6000
+ROM:00011C1F                 bit     7, a            ; Check bit 7
+ROM:00011C21                 ld      ($6000), a      ; Write to port $6000
+ROM:00011C24                 bit     7, a            ; Check bit 7
+ROM:00011C26                 ld      ($6000), a      ; Write to port $6000
+ROM:00011C29                 bit     7, a            ; Check bit 7
+ROM:00011C2B                 ld      ($6000), a      ; Write to port $6000
+ROM:00011C2E                 bit     7, a            ; Check bit 7
+ROM:00011C30                 ld      ($6000), a      ; Write to port $6000
+ROM:00011C33                 bit     7, a            ; Check bit 7
+ROM:00011C35                 ld      ($6000), a      ; Write to port $6000
+ROM:00011C38                 ld      a, 0            ; Load 0
+ROM:00011C3A                 ld      ($6000), a      ; Write to port $6000
+ROM:00011C3D                 ret                     ; Return
+ROM:00011C3D ; End of Z80 Sound Driver
+ROM:00011C3D
+ROM:00011C3E ; Instrument Data (continues after Z80 program)
+ROM:00011C3E InstrumentData_Continued:               ; DATA XREF: Sound_ProcessMusicTracks+DC
+ROM:00011C3E                 db      $6E, $6C, $6E, $73, $80 ; Instrument parameters
+ROM:00011C43                 db      $7E, $7B, $84, $79, $6E
+ROM:00011C48                 db      $79, $7E, $77, $7B, $89
+ROM:00011C4D                 db      $8D, $8D, $8D, $80, $72
+ROM:00011C52                 db      $6E, $80, $94, $87, $70
+ROM:00011C57                 db      $6A, $6C
