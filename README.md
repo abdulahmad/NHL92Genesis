@@ -19,7 +19,7 @@ Built on the work that McMarkis (https://github.com/Mhopkinsinc/NHLHockey) did t
 
 1. Install node from https://nodejs.org/en/download if it isn't already installed on your machine
 
-2. In the `NHL92Genesis` folder, run npm i to install `node_modules`
+2. In the `NHL92Genesis` folder, run `npm i` to install `node_modules`
 
 3. Copy the NHL Hockey (NHL92) Sega Genesis ROM file into the `NHL92Genesis` folder
 
