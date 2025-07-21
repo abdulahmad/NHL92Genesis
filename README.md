@@ -81,7 +81,7 @@ The original source code that was released was in a state that was post-retail c
 4. **Location**: `TitleScreen` routine (title screen setup).
    - **Rev=0 (Retail) Code**: Omitted.
    - **Rev=1 (Revision A) Code**: `bsr KillCrowd`
-   - **Description/Comment**: Rev=1 explicitly calls `KillCrowd` (likely a sound routine to stop crowd cheering/booing). This fixes a bug where crowd sounds from previous games/demos persist into the title screen, causing audio glitches. Common in early Genesis games with shared sound drivers. Improves user experience by ensuring clean audio on startup.
+   - **Description/Comment**: Rev=1 explicitly calls `KillCrowd`. This fixes a bug where crowd sounds from previous games/demos persist into the title screen, causing audio glitches. Improves user experience by ensuring clean audio on startup.
 
 5. **Location**: `Opening2` routine (game restart/entry point).
    - **Rev=0 (Retail) Code**:
