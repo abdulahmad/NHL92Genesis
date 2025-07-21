@@ -5,7 +5,7 @@
 
 ; Data Location
 fm_instrument_patch_sfx_id_3 = $12DE2 ; 12DE2 - 12A58 (sfx_puckwall1_pcm) - F4C8
-fm_instrument_patch_sfx_31 = $10820
+fm_instrument_patch_sfx_id_31 = $10820
 
 ; Z80 Memory Map
 z80_ram = $A00000
@@ -891,7 +891,7 @@ handle_sfx_oooh:
 
 ; Handles SFX ID 31.
 handle_sfx_id_31:
-    move.l  #fm_instrument_patch_sfx_31,d1 ; Load patch
+    move.l  #fm_instrument_patch_sfx_id_31,d1 ; Load patch
     move.b  #$1B,d2                 ; Load param
     move.b  #0,d3                   ; Load param
     bsr.w   Sound_WriteYM2612       ; Write to YM2612
