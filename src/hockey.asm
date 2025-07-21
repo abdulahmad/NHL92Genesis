@@ -103,6 +103,9 @@ ResetClock	;set period length and stop clock
 .timetab	dc.w	5*60,10*60,20*60,30
 
 StartPer
+	; Initialize music state
+    move.b  #1, MusicState  ; Set state to "playing track 7"
+
 	; Play track 7
     move.b  #$11, $A12010   ; PLAY command
     move.b  #7, $A12011     ; Track 7 (organ music)
@@ -215,6 +218,21 @@ periodicevents	;called every time thru game loop with d7 = elapsed frames
 	beq	.1
 	moveq	#9,d1
 .1	bra	dodbar
+
+	; Check MSU-MD status for music state
+    move.b  MusicState,d0
+    cmp.b   #1,d0       ; Are we playing track 7?
+    bne     .no_music_check
+    move.b  $A12020,d0
+    cmpi.b  #0,d0       ; Is track 7 done?
+    bne     .no_music_check
+    ; Track 7 finished, switch to track 2 in loop
+    move.b  #$12, $A12010   ; PLAY LOOP command
+    move.b  #2, $A12011     ; Track 2
+    addq.b  #1, $A1201F     ; Execute
+    move.b  #2, MusicState  ; Set state to "playing track 2"
+.no_music_check
+    rts
 
 updatecrowdf	;this is called every game loop with d7 = elapsed frames
 	;this will update the current frame of crowd animation

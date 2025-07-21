@@ -1,3 +1,7 @@
+; In Ram.Asm or similar
+MusicState:     dc.b    0   ; 0 = idle, 1 = playing track 7, 2 = playing track 2
+    even
+	
 ;Variables
 Asound	=	$c00011 	;analog sound
 Vdata	=	$c00000	;video ports
