@@ -3,7 +3,7 @@ Bitwise perfect compliable source of NHL Hockey (aka NHL 92) for Sega Genesis. I
 
 Built on the work that McMarkis (https://github.com/Mhopkinsinc/NHLHockey) did to get the source compiling.
 
-Features of this version:
+## Features of this version:
 - Retail version is bitwise perfect with retail ROM. Rev A version is bitwise perfect with Rev A build.
 - Documentation of all File Formats used within the game
 - Script which changes opcodes to match the custom compiler EA used to build the game
@@ -15,7 +15,7 @@ Features of this version:
 - Script to extract assets from retail rom (Graphics, PCM audio, FM audio, z80 snd driver)
 - Requires retail ROM
 
-Instructions
+## Instructions
 
 1. Install node from https://nodejs.org/en/download if it isn't already installed on your machine
 
@@ -37,7 +37,7 @@ Instructions
 
     - For developing your own version, run `npm run build:retail` -- this does not include the retail checksum validation ccheck
 
-Documentation
+# Documentation
 
 ## Retail (REV=0) vs Rev A (REV=1)
 
