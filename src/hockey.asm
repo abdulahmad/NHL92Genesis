@@ -8,6 +8,33 @@ Begin
 	move	#$2700,SR	
 	move.l	#Stack,sp	
 	move.l	#varstart,a0	;clear out ram
+	; Call MSU-MD driver initialization (assuming loaded at MSU_Driver)
+    jsr     MSU_Driver
+
+    tst.w   d0
+    bne.s   No_MCD          ; If d0 != 0, MCD not detected
+; Wait for driver ready
+.Wait_Ready
+    move.b  $A12020,d0
+    cmpi.b  #0,d0
+    bne.s   .Wait_Ready
+
+    ; Set volume to max (optional)
+    move.b  #$15, $A12010   ; VOL command
+    move.b  #255, $A12011   ; Volume 255
+    addq.b  #1, $A1201F     ; Execute
+
+    ; Wait ready again
+.Wait_Ready2:
+    move.b  $A12020,d0
+    cmpi.b  #0,d0
+    bne.s   .Wait_Ready2
+
+    ; Play track 4 in loop
+    move.b  #$12, $A12010   ; PLAY LOOP command
+    move.b  #4, $A12011     ; Track 4 (NHL 94 menu music)
+    addq.b  #1, $A1201F     ; Execute
+
 .0	clr.l	(a0)+
 	cmp.l	#varend2,a0
 	blt	.0
@@ -31,6 +58,9 @@ Begin
 	
 	jmp	Opening				;goto title screen and options etc.
 ;----------------------------------------------------
+
+No_MCD:
+    bra.s   No_MCD          ; Loop if no MCD
 
 StartGame
 	clr.b	gmode
@@ -73,6 +103,11 @@ ResetClock	;set period length and stop clock
 .timetab	dc.w	5*60,10*60,20*60,30
 
 StartPer
+	; Play track 7
+    move.b  #$11, $A12010   ; PLAY command
+    move.b  #7, $A12011     ; Track 7 (organ music)
+    addq.b  #1, $A1201F     ; Execute
+
 	move.l	#Stack,a7
 	move.l	#tmstruct,a2
 	bsr	reenergizeteam
@@ -3970,6 +4005,11 @@ PlayoffScreen
 	ENDIF
 	
 ScoutingReport
+	; Play track 3 in loop
+    move.b  #$12, $A12010   ; PLAY LOOP command
+    move.b  #3, $A12011     ; Track 3 (NHL 94 scouting report/intro movie music)
+    addq.b  #1, $A1201F     ; Execute
+
 	;bring up graphic for scouting report screen
 	bsr	SetTeams
 
@@ -5705,6 +5745,8 @@ Stanleymap
 EASNmap
 	incbin ..\Extracted\Graphics\EASN.map.jim
 	even
+MSU_Driver:
+	incbin msu-drv.bin
 	IF CHECKSUM=1 ; Security Code used during Mastering of Retail Cartridge
 		include checksum.asm
 		IF REV=0 ; RETAIL

@@ -7,7 +7,7 @@
     "asm": "build.bat",
     "asm:logo": "buildEALogo.bat",
     "asm:sound": "buildSound.bat",
-    "fixopcodes": "node fixopcodes.js \"output\\nhl92 .lst\" output\\nhl92.bin",
+    "fixopcodes": "node fixopcodes.js \"output\\nhl92 .lst\" output\\nhl92.md",
     "fixopcodes:logo": "node fixopcodes.js \"output\\EALogo .lst\" output\\EALogo.bin",
     "fixopcodes:sound": "node fixopcodes.js \"output\\Hockey .lst\" output\\Hockey.snd",
     "build:retail": "set rev=0&& set checksum=1&& npm run asm && npm run fixopcodes",

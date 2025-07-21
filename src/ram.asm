@@ -25,7 +25,7 @@ HVcount	=	$c00008	;Video port
 
 osflag	=	20000	;flag for off screen graphic
 
-SngTitle	=	1	;Title song
+SngTitle	=	2	;Title song
 SngEOP	=	0	;End of Period song
 SngEOG	=	3	;End of Game song
 SngPO	=	4	;playoffs music

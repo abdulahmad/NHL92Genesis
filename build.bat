@@ -37,7 +37,7 @@ REM Run the assembler with all flags
   /p /m /g ^
   /o d- /o s- /o r+ /o l+ /o l. /o ow+ /o op- /o os+ /o oz+ /o omq- /o oaq+ /o osq+ ^
   %revFlag% %checksumFlag% ^
-  "%workspaceFolder%src\hockey.asm,%workspaceFolder%output\nhl92.bin,%workspaceFolder%output\nhl92,%workspaceFolder%output\nhl92" ^
+  "%workspaceFolder%src\hockey.asm,%workspaceFolder%output\nhl92.md,%workspaceFolder%output\nhl92,%workspaceFolder%output\nhl92" ^
   > "%workspaceFolder%output\Build.log"
 
 endlocal

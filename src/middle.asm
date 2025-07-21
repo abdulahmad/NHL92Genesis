@@ -197,7 +197,10 @@ song	;play song number
 	clr.l	d0
 	move	16*4(a7),d0
 	bmi	.none
-	jsr	p_initune
+	; jsr	p_initune
+	; move.b #$12, ($A12010).l  ; Command: PLAY LOOP
+	; move.b #$02, ($A12011).l  ; Track number (byte)
+	; addq.b #1, ($A1201F).l  ; Increment clock to execute
 .none
 	movem.l	(a7)+,d0-d7/a0-a6
 	move.l	(a7),2(a7)
