@@ -4,11 +4,11 @@ Bitwise perfect compliable source of NHL Hockey (aka NHL 92) for Sega Genesis. I
 Built on the work that McMarkis (https://github.com/Mhopkinsinc/NHLHockey) did to get the source compiling.
 
 ## Features of this version:
-- Retail version is bitwise perfect with retail ROM. Rev A version is bitwise perfect with Rev A build.
+- Retail version is bitwise perfect with retail ROM. Rev A Dev build is bitwise perfect with Rev A Dev build included with original release.
 - Documentation of all File Formats used within the game
 - Script which changes opcodes to match the custom compiler EA used to build the game
 - Disassembled Retail Validation Check code included via checksum env variable
-- Env vars allows build of Retail code (includes validation code), Rev A code (includes validation code) or Dev version (no validation code)
+- Env vars allows build of Retail version (includes validation code), Rev A "retail" version (includes validation code) or Rev A Dev version (no validation code)
 - Script to generate CRC16 Checksum used in ROM Header & CRC32 Checksum used in Validation code
 - EA Logo code is disassembled and buildable
 - Sound Driver code is disassembled and buildable
@@ -31,16 +31,16 @@ Built on the work that McMarkis (https://github.com/Mhopkinsinc/NHLHockey) did t
 
 7. You have the choice of building 3 versions:
 
-    - For the Retail ROM, run `npm run build:retail` -- this includes the retail checksum validation check (modified_nhl92.bin is the opcode corrected version)
+    - For the `Retail` ROM, run `npm run build:retail` -- this includes the retail checksum validation check (modified_nhl92.bin is the opcode corrected version)
 
-    - For the Rev A ROM, run `npm run build:reva` -- this includes the retail checksum validation check (modified_nhl92.bin is the opcode corrected version)
+    - For the `Rev A` ROM, run `npm run build:reva` -- this includes the retail checksum validation check (modified_nhl92.bin is the opcode corrected version)
 
-    - For developing your own version, run `npm run build:dev` -- this does not include the retail checksum validation check  (modified_nhl92.bin is the opcode corrected version)
+    - For developing your own version, run `npm run build:dev` -- this uses `Rev A` flags and does not include the retail checksum validation check  (modified_nhl92.bin is the opcode corrected version)
 
 # Documentation
 
 ## Developing on this build
-You need to build using `build:dev` to avoid the checksum validation. If for whatever reason, you do want to enforce checksum validation on your build, you need to use the `generateChecksum.js` script. Also, you need to do 2 passes of the script & updating the checksums to end up with the correct checksum for both CRC16 and CRC32. The game will not start if checksum validation is enabled and the checksum is incorrect.
+You need to build using `build:dev` to avoid the checksum validation. By default, this builds the `Rev A` version of the code. If for whatever reason, you do want to enforce checksum validation on your build, you need to use the `generateChecksum.js` script. Also, you need to do 2 passes of the script & updating the checksums to end up with the correct checksum for both CRC16 and CRC32. The game will not start if checksum validation is enabled and the checksum is incorrect.
 
 ## Retail (REV=0) vs Rev A (REV=1)
 The original source code that was released was in a state that was post-retail code, and had some fixes (which are mentioned down below). I'm not sure if this is an undumped late print run retail version, but it might be. As such, I've resorted to calling this newly discovered version of NHL92 `Rev A`.

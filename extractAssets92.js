@@ -83,7 +83,8 @@ const assets = [
     { name: 'note_octave_table.bin', folder: 'Sound', start: 0x101DA, end: 0x1023A },
     { name: 'envelope_table.bin', folder: 'Sound', start: 0x1023A, end: 0x1023A },
     { name: 'fmtune_header_table.bin', folder: 'Sound', start: 0x10294, end: 0x10316 },
-    { name: 'fmtune_channel_data.bin', folder: 'Sound', start: 0x10316, end: 0x11624 }, // the data changes around 1061A
+    { name: 'fmtune_channel_data.bin', folder: 'Sound', start: 0x10316, end: 0x1061E }, // the data changes around 1061E
+    { name: 'fmtune_sequence_data.bin', folder: 'Sound', start: 0x1061E, end: 0x11624 },
     // code segment 3 0x11624 - 0x116A6
     { name: 'z80_snd_drv.bin', folder: 'Sound', start: 0x116A6, end: 0x11C3E },
     { name: 'sfx_puckwall1_pcm.bin', folder: 'Sound', start: 0x11C3E, end: 0x12A58 },
