@@ -3,7 +3,7 @@ Bitwise perfect compliable source of NHL Hockey (aka NHL 92) for Sega Genesis. I
 
 Built on the work that McMarkis (https://github.com/Mhopkinsinc/NHLHockey) did to get the source compiling.
 
-Features of this version:
+## Features of this version:
 - Retail version is bitwise perfect with retail ROM. Rev A version is bitwise perfect with Rev A build.
 - Documentation of all File Formats used within the game
 - Script which changes opcodes to match the custom compiler EA used to build the game
@@ -15,7 +15,7 @@ Features of this version:
 - Script to extract assets from retail rom (Graphics, PCM audio, FM audio, z80 snd driver)
 - Requires retail ROM
 
-Instructions
+## Instructions
 
 1. Install node from https://nodejs.org/en/download if it isn't already installed on your machine
 
@@ -37,16 +37,17 @@ Instructions
 
     - For developing your own version, run `npm run build:dev` -- this does not include the retail checksum validation check (corrected from your original "retail" typo)
 
-Documentation
+# Documentation
 
 ## Retail (REV=0) vs Rev A (REV=1)
+The original source code that was released was in a state that was post-retail code, and had some fixes (which are mentioned down below). I'm not sure if this is an undumped late print run retail version, but it might be. As such, I've resorted to calling this newly discovered version of NHL92 `Rev A`.
 
-### Overall Differences Between Rev=0 and Rev=1
-- **Bug Fixes Focus**: Rev=1 adds safeguards against crashes (e.g., extra RAM clearing, SR register settings), sound glitches (e.g., explicit crowd sound kills), and logic errors (e.g., bitmasking in playoff resolution to prevent overflow or invalid states). It also includes minor UI/alignment tweaks (e.g., different padding bytes or string parameters).
+### Overall Differences Between Retail (REV=0) vs Rev A (REV=1)
+- **Bug Fixes Focus**: `Rev A` adds safeguards against crashes (e.g., extra RAM clearing, SR register settings), sound glitches (e.g., explicit crowd sound kills), and logic errors (e.g., bitmasking in playoff resolution to prevent overflow or invalid states). It also includes minor UI/alignment tweaks (e.g., different padding bytes or string parameters).
 - **No Major Features Added**: Changes are subtle; no new gameplay mechanics, graphics, or levels. Rev=1 seems like a post-release patch for stability, especially in playoff modes and demo/initialization sequences.
-- **Performance/Stability**: Extra RAM clears and SR (Status Register) manipulations suggest fixes for undefined behavior or memory corruption in Rev=0. Sound-related calls (e.g., `KillCrowd`) likely fix lingering audio issues.
+- **Performance/Stability**: Extra RAM clears and SR (Status Register) manipulations suggest fixes for undefined behavior or memory corruption in `Retail`. Sound-related calls (e.g., `KillCrowd`) likely fix lingering audio issues.
 - **Size/Alignment**: Some differences are padding bytes (e.g., `$E7` vs `$FF`), possibly to adjust ROM checksums, alignment, or fix disassembly issues in tools/compilers.
-- **Playoff Logic**: Rev=1 adds bitmasking to ensure valid states in playoff trees, preventing progression bugs (e.g., infinite loops or invalid wins).
+- **Playoff Logic**: `Rev A` adds bitmasking to ensure valid states in playoff trees, preventing progression bugs (e.g., infinite loops or invalid wins).
 - **Total Changes**: About 10 distinct conditional blocks, mostly small (1-10 lines each). Rev=1 is "heavier" on initialization and error handling.
 
 ### Specific Differences and Comments
@@ -141,6 +142,11 @@ Documentation
 10. **Location**: Various data tables (e.g., end of ROM or unused areas).
     - Several instances of `dcb.b` padding with different sizes (e.g., `$124` vs `$108` bytes of `$FF`).
     - **Description/Comment**: ROM filler for alignment or to reach power-of-2 sizes. No functional change, but ensures compatibility with carts/tools. If checksum code is enabled (`IF CHECKSUM=1`), it might relate to security/mastering fixes in Rev=1.
+
+11. **Location**: End of `teamdata.asm`
+    - **Rev=0 (Retail) Code**: ```String	'Mark Hughes and Scooter Hanson'```
+   - **Rev=1 (Revision A) Code**: ```String	'Mark Hughes and Scooter Henson'```
+   - **Description/Comment**: Fixed typo of Scooter Henson's name.
 
 ## Sound System Overview
 NHL 92 uses a hybrid sound system: The 68000 CPU handles high-level music/SFX logic (preparing channel data, parsing tracks, envelopes, modulation), while the Z80 co-processor drives the YM2612 FM synthesizer and PSG for low-level output. PCM samples are used for realistic SFX (e.g., puck hits), streamed via DAC.
