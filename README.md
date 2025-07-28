@@ -1,5 +1,5 @@
 # NHL92Genesis
-Bitwise perfect compliable source of NHL Hockey (aka NHL 92) for Sega Genesis. Includes fully disassembled sound driver. Requires original ROM file to build.
+Bitwise perfect compilable source of NHL Hockey (aka NHL 92) for Sega Genesis. Includes fully disassembled sound driver. Requires original ROM file to build.
 
 Built on the work that McMarkis (https://github.com/Mhopkinsinc/NHLHockey) did to get the source compiling.
 
