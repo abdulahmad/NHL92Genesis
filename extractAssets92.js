@@ -81,7 +81,7 @@ const assets = [
     { name: 'sfx_beep1_cmdstream.bin', folder: 'Sound', start: 0x1016A, end: 0x1017A },
     { name: 'note_freqeuency_table.bin', folder: 'Sound', start: 0x1017A, end: 0x101DA },
     { name: 'note_octave_table.bin', folder: 'Sound', start: 0x101DA, end: 0x1023A },
-    { name: 'envelope_table.bin', folder: 'Sound', start: 0x1023A, end: 0x1023A },
+    { name: 'envelope_table.bin', folder: 'Sound', start: 0x1023A, end: 0x10294 },
     { name: 'fmtune_header_table.bin', folder: 'Sound', start: 0x10294, end: 0x10316 },
     { name: 'fmtune_channel_data.bin', folder: 'Sound', start: 0x10316, end: 0x1061E }, // the data changes around 1061E
     { name: 'fmtune_sequence_data.bin', folder: 'Sound', start: 0x1061E, end: 0x11624 },
