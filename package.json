@@ -10,8 +10,10 @@
     "fixopcodes": "node fixopcodes.js \"output\\nhl92 .lst\" output\\nhl92.bin",
     "fixopcodes:logo": "node fixopcodes.js \"output\\EALogo .lst\" output\\EALogo.bin",
     "fixopcodes:sound": "node fixopcodes.js \"output\\Hockey .lst\" output\\Hockey.snd",
-    "build:retail": "set rev=0&& set checksum=1&& npm run asm && npm run fixopcodes",
-    "build:reva": "set rev=1&& set checksum=1&& npm run asm && npm run fixopcodes",
+    "verify:retail": "node verifyRom.js output/modified_nhl92.bin nhl92retail.bin",
+    "verify:reva": "node verifyRom.js output/modified_nhl92.bin nhl92retailRevA.bin",
+    "build:retail": "set rev=0&& set checksum=1&& npm run asm && npm run fixopcodes && npm run verify:retail",
+    "build:reva": "set rev=1&& set checksum=1&& npm run asm && npm run fixopcodes && npm run verify:reva",
     "build:dev": "set rev=1&& set checksum=0&& npm run asm && npm run fixopcodes",
     "build:logo": "set rev=0&& set checksum=1&& npm run asm:logo && npm run fixopcodes:logo",
     "build:sound": "set rev=0&& set checksum=1&& npm run asm:sound && npm run fixopcodes:sound"
