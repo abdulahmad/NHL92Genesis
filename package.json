@@ -3,24 +3,17 @@
   "version": "1.0.0",
   "description": "Build scripts for NHL92",
   "scripts": {
-    "assets": "node tools/prebuild.js retail",
+    "assets": "node tools/prebuild.js dev",
     "extractassets": "node tools/extractAssets92.js nhl92retail.bin",
-    "asm": "build.bat",
-    "asm:logo": "buildEALogo.bat",
-    "asm:sound": "buildSound.bat",
-    "fixopcodes": "node tools/fixopcodes.js \"output\\nhl92 .lst\" output\\nhl92.bin",
-    "fixopcodes:logo": "node tools/fixopcodes.js \"output\\EALogo .lst\" output\\EALogo.bin",
-    "fixopcodes:sound": "node tools/fixopcodes.js \"output\\Hockey .lst\" output\\Hockey.snd",
-    "verify:retail": "node tools/verifyRom.js output/modified_nhl92.bin nhl92retail.bin",
-    "verify:reva": "node tools/verifyRom.js output/modified_nhl92.bin nhl92retailRevA.bin",
-    "build:logo": "set rev=0&& set checksum=1&& node tools/prebuild.js retail && npm run asm:logo && npm run fixopcodes:logo",
-    "build:sound": "set rev=0&& set checksum=1&& node tools/prebuild.js retail && npm run asm:sound && npm run fixopcodes:sound",
-    "build:retail": "set rev=0&& set checksum=1&& node tools/prebuild.js retail && set NHL_PREBUILD_DONE=1&& npm run asm && npm run fixopcodes && npm run verify:retail",
-    "build:reva": "set rev=1&& set checksum=1&& node tools/prebuild.js reva && set NHL_PREBUILD_DONE=1&& npm run asm && npm run fixopcodes && npm run verify:reva",
-    "build:dev": "set rev=1&& set checksum=0&& node tools/prebuild.js dev && set NHL_PREBUILD_DONE=1&& npm run asm && npm run fixopcodes",
+    "build:retail": "node tools/build.js retail",
+    "build:reva": "node tools/build.js reva",
+    "build:dev": "node tools/build.js dev",
+    "build:logo": "node tools/build.js --logo",
+    "build:sound": "node tools/build.js --sound",
+    "verify:retail": "node tools/verifyRom.js output/nhl92.bin nhl92retail.bin",
+    "verify:reva": "node tools/verifyRom.js output/nhl92-revA.bin nhl92retailRevA.bin",
     "checksum": "node tools/generateChecksum.js",
-    "clean": "node tools/clean.js",
-    "clean:all": "node tools/clean.js --all"
+    "clean": "node tools/build.js --clean"
   },
   "license": "ISC"
 }

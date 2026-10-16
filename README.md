@@ -30,20 +30,21 @@ Built on the work that McMarkis (https://github.com/Mhopkinsinc/NHLHockey) did t
 
     The assets can be extracted from either ROM (both give identical assets). The retail build is verified against the retail ROM and the Rev A build against the Rev A ROM; the dev build needs either one.
 
-4. Build one of 3 versions. Each build first runs `tools/prebuild.js`, which checks the ROM(s) by SHA-1 and size (and stops with the expected file name, SHA-1 and size if one is missing or wrong), then extracts the assets into `Extracted/` from that ROM with `tools/extractAssets92.js` if they are missing or incomplete. `build.bat` then builds the EA logo (`output/modified_EALogo.bin`) and the sound driver (`output/modified_Hockey.snd`) before the main ROM.
+4. Build one of 3 versions. Everything runs through `tools/build.js` (node; on Windows it runs the assembler directly, on Linux/macOS under wine). Each build first runs `tools/prebuild.js`, which checks the ROM(s) by SHA-1 and size (and stops with the expected file name, SHA-1 and size if one is missing or wrong), then extracts the assets into `Extracted/` from that ROM with `tools/extractAssets92.js` if they are missing or incomplete. It then builds the EA logo (`output/modified_EALogo.bin`) and the sound driver (`output/modified_Hockey.snd`) before the main ROM.
 
     - `npm run build:retail`: the `Retail` ROM, with the retail checksum validation check. Verified against `nhl92retail.bin`
     - `npm run build:reva`: the `Rev A` ROM, with the checksum validation check. Verified against `nhl92retailRevA.bin`
     - `npm run build:dev`: for developing your own version. Uses `Rev A` flags without the checksum validation check
 
-    The opcode corrected ROM is `output/modified_nhl92.bin`. Both the retail and Rev A builds are verified byte for byte against their ROMs.
+    The built ROM is `output/nhl92.bin` (retail), `output/nhl92-revA.bin` or `output/nhl92-dev.bin`; intermediates go in `output/build/`. Both the retail and Rev A builds are verified byte for byte against their ROMs.
 
 Other scripts:
 - `npm run assets`: ROM check and asset extraction only (`npm run extractassets` runs the extractor directly)
 - `npm run build:logo` / `npm run build:sound`: build only the EA logo or the sound driver
-- `npm run checksum`: print the header and validation checksums of `output/modified_nhl92.bin` (`tools/generateChecksum.js`)
-- `npm run clean`: delete `output/`; `npm run clean:all` also deletes `Extracted/`
-- `tools/verify_all.sh`: on Linux/macOS with wine, extracts fresh and builds retail and Rev A, printing MATCH for each
+- `npm run checksum`: print the header and validation checksums of `output/nhl92.bin`, or of the ROM given as argument (`tools/generateChecksum.js`)
+- `npm run clean`: delete `output/` and `Extracted/` (re-extracted by the next build)
+- `tools/verify_all.sh`: extracts fresh and builds retail and Rev A, printing MATCH for each
+- Add `--verbose` to `node tools/build.js ...` for the full tool output
 
 All the build tools are in `tools/`.
 

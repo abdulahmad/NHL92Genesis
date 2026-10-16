@@ -1,10 +1,8 @@
-// prebuild.js: run before every build (npm run build:*, seg:*, build94.bat, buildseg.bat).
+// prebuild.js: run first by every build (tools/build.js).
 // Usage: node tools/prebuild.js [retail|reva|dev]
 // The ROM must be present (and the right version); then makes sure Extracted/ is complete, and runs
 // the extractor if it is not. If the ROM is missing or wrong, stops with the path, file name, SHA-1
 // and size it must have.
-// The batch files skip this step when NHL_PREBUILD_DONE is set (the npm scripts set it after
-// running it; tools/verify_all.sh runs it with Linux node, since there is no node under wine).
 // Adapted from NHL94Genesis tools/prebuild.js.
 
 const GAME = 'NHL Hockey (NHL 92, Sega Genesis)';
