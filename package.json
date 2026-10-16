@@ -10,8 +10,8 @@
     "build:dev": "node tools/build.js dev",
     "build:logo": "node tools/build.js --logo",
     "build:sound": "node tools/build.js --sound",
-    "verify:retail": "node tools/verifyRom.js output/nhl92.bin nhl92retail.bin",
-    "verify:reva": "node tools/verifyRom.js output/nhl92-revA.bin nhl92retailRevA.bin",
+    "verify:retail": "node tools/verifyRom.js output/retail/nhl92.bin nhl92retail.bin",
+    "verify:reva": "node tools/verifyRom.js output/reva/nhl92.bin nhl92retailRevA.bin",
     "checksum": "node tools/generateChecksum.js",
     "clean": "node tools/build.js --clean"
   },

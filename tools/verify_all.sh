@@ -6,7 +6,7 @@ cd "$(dirname "$0")/.." || exit 1
 fail=0
 rm -rf Extracted output
 for m in retail reva; do
-  # build.js prints the result of each step on an indented line under it: "   MATCH output/nhl92.bin == ...".
+  # build.js prints the result of each step on an indented line under it: "   MATCH output/retail/nhl92.bin == ...".
   r=$(node tools/build.js $m)
   last=$(echo "$r" | grep -E '^ +MATCH ')
   case "$last" in
