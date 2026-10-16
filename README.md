@@ -4,7 +4,7 @@ Bitwise perfect compilable source of NHL Hockey (aka NHL 92) for Sega Genesis. I
 Built on the work that McMarkis (https://github.com/Mhopkinsinc/NHLHockey) did to get the source compiling.
 
 ## Features of this version:
-- Retail version is bitwise perfect with retail ROM. Rev A Dev build is bitwise perfect with Rev A Dev build included with original release.
+- Retail version is bitwise perfect with retail ROM. Rev A build is bitwise perfect with the Rev A ROM. Both are verified by the build.
 - Documentation of all File Formats used within the game
 - Script which changes opcodes to match the custom compiler EA used to build the game
 - Disassembled Retail Validation Check code included via checksum env variable
@@ -12,35 +12,45 @@ Built on the work that McMarkis (https://github.com/Mhopkinsinc/NHLHockey) did t
 - Script to generate CRC16 Checksum used in ROM Header & CRC32 Checksum used in Validation code
 - EA Logo code is disassembled and buildable
 - Sound Driver code is disassembled and buildable
-- Script to extract assets from retail rom (Graphics, PCM audio, FM audio, z80 snd driver)
+- Script to extract assets from retail rom (Graphics, PCM audio, FM audio, z80 snd driver), run automatically by the build when `Extracted/` is missing or incomplete
 - Requires retail ROM
 
 ## Instructions
 
 1. Install node from https://nodejs.org/en/download if it isn't already installed on your machine
 
-2. In the `NHL92Genesis` folder, run `npm i` to install `node_modules`
+2. In the `NHL92Genesis` folder, run `npm i`
 
-3. Copy the NHL Hockey (NHL92) Sega Genesis ROM file into the `NHL92Genesis` folder
+3. Copy your NHL Hockey (NHL 92) Sega Genesis ROM dumps into the `NHL92Genesis` folder (ROMs are not included in the repo):
 
-4. Run `node .\extractAssets92.js <nhl92RomFileName>` to extract assets from the NHL Hockey (NHL 92) ROM file into the `Extracted` folder
+    | ROM | File name | SHA-1 | Size |
+    |---|---|---|---|
+    | Retail (1991.MAY, GM T-50236 -00) | `nhl92retail.bin` | `2337ad3c065f46edccf19007d7a5be80a97520d5` | 524288 bytes (512 KB) |
+    | Rev A | `nhl92retailRevA.bin` | `10b50ebf3db0b4d207e21acf4481eb704b3c45f9` | 524288 bytes (512 KB) |
 
-5. Run `npm run build:logo` to build `EALogo.bin` (`modified_EALogo.bin` is the opcode corrected version)
+    The retail ROM is needed for every build (the assets are extracted from it). The Rev A ROM is only needed to verify the Rev A build.
 
-6. Run `npm run build:sound` to build `Hockey.snd` (`modified_Hockey.snd` is the opcode corrected version)
+4. Build one of 3 versions. Each build first runs `tools/prebuild.js`, which checks the ROM(s) by SHA-1 and size (and stops with the expected file name, SHA-1 and size if one is missing or wrong), then extracts the assets into `Extracted/` with `tools/extractAssets92.js` if they are missing or incomplete. `build.bat` then builds the EA logo (`output/modified_EALogo.bin`) and the sound driver (`output/modified_Hockey.snd`) before the main ROM.
 
-7. You have the choice of building 3 versions:
+    - `npm run build:retail`: the `Retail` ROM, with the retail checksum validation check. Verified against `nhl92retail.bin`
+    - `npm run build:reva`: the `Rev A` ROM, with the checksum validation check. Verified against `nhl92retailRevA.bin`
+    - `npm run build:dev`: for developing your own version. Uses `Rev A` flags without the checksum validation check
 
-    - For the `Retail` ROM, run `npm run build:retail` -- this includes the retail checksum validation check (modified_nhl92.bin is the opcode corrected version)
+    The opcode corrected ROM is `output/modified_nhl92.bin`. Both the retail and Rev A builds are verified byte for byte against their ROMs.
 
-    - For the `Rev A` ROM, run `npm run build:reva` -- this includes the retail checksum validation check (modified_nhl92.bin is the opcode corrected version)
+Other scripts:
+- `npm run assets`: ROM check and asset extraction only (`npm run extractassets` runs the extractor directly)
+- `npm run build:logo` / `npm run build:sound`: build only the EA logo or the sound driver
+- `npm run checksum`: print the header and validation checksums of `output/modified_nhl92.bin` (`tools/generateChecksum.js`)
+- `npm run clean`: delete `output/`; `npm run clean:all` also deletes `Extracted/`
+- `tools/verify_all.sh`: on Linux/macOS with wine, extracts fresh and builds retail and Rev A, printing MATCH for each
 
-    - For developing your own version, run `npm run build:dev` -- this uses `Rev A` flags and does not include the retail checksum validation check  (modified_nhl92.bin is the opcode corrected version)
+All the build tools are in `tools/`.
 
 # Documentation
 
 ## Developing on this build
-You need to build using `build:dev` to avoid the checksum validation. By default, this builds the `Rev A` version of the code. If for whatever reason, you do want to enforce checksum validation on your build, you need to use the `generateChecksum.js` script. Also, you need to do 2 passes of the script & updating the checksums to end up with the correct checksum for both CRC16 and CRC32. The game will not start if checksum validation is enabled and the checksum is incorrect.
+You need to build using `build:dev` to avoid the checksum validation. By default, this builds the `Rev A` version of the code. If for whatever reason, you do want to enforce checksum validation on your build, you need to use the `tools/generateChecksum.js` script (`npm run checksum`). Also, you need to do 2 passes of the script & updating the checksums to end up with the correct checksum for both CRC16 and CRC32. The game will not start if checksum validation is enabled and the checksum is incorrect.
 
 ## Retail (REV=0) vs Rev A (REV=1)
 The original source code that was released was in a state that was post-retail code, and had some fixes (which are mentioned down below). I'm not sure if this is an undumped late print run retail version, but it might be. As such, I've resorted to calling this newly discovered version of NHL92 `Rev A`.
@@ -162,9 +172,9 @@ NHL 92 uses a hybrid sound system: The 68000 CPU handles high-level music/SFX lo
 
 - **Music Tracks**: 5 tracks (e.g., Title, EOP). Pointers in `fmtune_pointer_table` (num channels, tempo, channel data offsets). Sequences (`fmtune_seq0` etc.) use commands like $84 (loop), $88 (pitch adjust).
 
-- **SFX**: 35 entries in `sfx_pointer_table`. Handlers (e.g., `handle_sfx_puckwall1`) init channels and point to command streams (.bin files). Commands: $80 (instrument), $81 (delay), $83 (frequency sweep), $84 (stop), $85 (loop). Some SFX share streams/PCM (e.g., puckwall3 uses pass handler).
+- **SFX**: 35 entries in `sfx_pointer_table`. Handlers (e.g., `handle_sfx_slapshot`) init channels and point to command streams (.bin files). Commands: $80 (instrument), $81 (delay), $83 (frequency sweep), $84 (stop), $85 (loop). Some SFX share streams/PCM (e.g., the player hits boards SFX 15-17 also start `handle_sfx_hitboard1`).
 
-- **PCM Samples**: Extracted .bin files (e.g., `sfx_puckwall1_pcm.bin` at $12DE2). Streamed via DAC (YM2612 reg $2A). Signed 8-bit, ~8kHz. Used for hits, checks, crowd. Note: Some patches overlap (e.g., `sfx_puckbody_pcm` partially used for FM instruments).
+- **PCM Samples**: Extracted .bin files (e.g., `sfx_slapshot_pcm.bin` at $11C3E). Streamed via DAC (YM2612 reg $2A). Signed 8-bit, ~8kHz. Used for hits, checks, crowd. 
 
 - **FM Instruments**: 25+ patches starting at $11C3E in ROM (loaded to Z80 RAM offset $2A5). 32 bytes each: Operator params (multiplier, detune, total level, rate scaling, attack/decay/sustain/release), algorithm/feedback ($B0), stereo ($B4). Examples: Bass ($20,$62,...), Whistle ($43,0,...).
 
@@ -172,7 +182,7 @@ NHL 92 uses a hybrid sound system: The 68000 CPU handles high-level music/SFX lo
 
 - **Note Tables**: `note_frequency_table` (96 entries, YM2612 freq bytes), `note_octave_table` (96 entries, octave shifts).
 
-- **Build Notes**: `build:sound` assembles `sound.asm` + Z80 bin + extracts. Use `extractAssets92.js` for .bin files (PCM/cmdstreams). For custom SFX, edit handlers/streams and repoint in table.
+- **Build Notes**: `build:sound` assembles `sound.asm` + Z80 bin + extracts. Use `tools/extractAssets92.js` for .bin files (PCM/cmdstreams). For custom SFX, edit handlers/streams and repoint in table.
 
 ## .JIM
 Documentation for the NHL92 .JIM file format and tools to import/export to/from .JIM format lives here: https://github.com/abdulahmad/EA-NHL-Tools/tree/main/JIM-Tools
@@ -185,19 +195,19 @@ Documentation for the NHL92 .ANIM file format and tool to export from .ANIM form
 
 ## SFX:
 ### SFX pointer table
-Pointer table at $1035C (35 entries, longwords relative to `p_music_vblank`). Maps SFX IDs (0-34) to handlers (e.g., $0 = `handle_sfx_siren`). Some duplicates/share code (e.g., IDs 30-34 all point to `handle_sfx_id_30`).
+Pointer table at $1035C (35 entries, longwords relative to `p_music_vblank`). Maps SFX IDs (0-34) to handlers (e.g., $0 = `handle_sfx_siren`). IDs 0-31 are the SFX in EA's list (the `SFX...` equates in `src/ram.asm`); IDs 32-34 are unused duplicates of ID 30 (`handle_sfx_hitboardquiet4`). ID 31 (`handle_sfx_oooh`) has its own handler.
 
 ### SFX handler
-Handlers (e.g., `handle_sfx_puckwall1`) load YM2612 params or init channels via `Sound_InitSFXChannel`. Many write direct to YM2612 (e.g., `Sound_WriteYM2612`) for freq/volume, or chain to others (e.g., puckwall3 chains to pass).
+Handlers (e.g., `handle_sfx_slapshot`) load YM2612 params or init channels via `Sound_InitSFXChannel`. Many write direct to YM2612 (e.g., `Sound_WriteYM2612`) for freq/volume, or chain to others (e.g., `handle_sfx_playerboards1` chains to `handle_sfx_hitboard1`).
 
 ### SFX cmdstream
 Extracted .bin files (e.g., `sfx_siren_cmdstream_ch0.bin` at $FF74). Byte streams parsed in `Sound_Process_SFXChannels`: $80 (set instrument), $81/$82 (delay/alt delay), $83 (freq sweep: counter, base freq, increment), $84 (stop), $85 (loop). Frequency normalized to YM2612 range ($000-$7FF).
 
 ### SFX PCM
-Extracted signed 8-bit PCM .bin files (e.g., `sfx_puckwall1_pcm.bin` 0x11C3E-0x12A58). Streamed via DAC. Some shared/partial (e.g., `sfx_puckbody_pcm` overlaps FM patches at $12A58). Sample rates ~8-11kHz based on counters.
+Extracted signed 8-bit PCM .bin files (e.g., `sfx_slapshot_pcm.bin` 0x11C3E-0x12A58). Streamed via DAC. Some are shared by several SFX (e.g., `sfx_check_pcm` for checks 18-20). Sample rates ~8-11kHz based on counters.
 
 ### Instrument patches
-Loaded via $80 command. Params: 4 operators (mul/dt/tl/rs/ar/dr/sr/rr/ssg-eg), alg/fb, stereo. 25+ defined; some hardcoded in handlers (e.g., `fm_instrument_patch_sfx_id_3` at $12DE2 overlaps PCM).
+Loaded via $80 command. Params: 4 operators (mul/dt/tl/rs/ar/dr/sr/rr/ssg-eg), alg/fb, stereo. 25+ defined. Some handlers pass a PCM sample offset as a constant (`sfx_skate34_pcm_ofs` = $12DE2, `sfx_oooh_pcm_ofs` = $10820; formerly named `fm_instrument_patch_sfx_id_3` / `_31`).
 
 ## Note Frequency Table
 At $1017A (96 bytes): YM2612 freq low bytes for notes (C0-B7, incl. sharps). E.g., C0=$02, C#0=$03. Used in `process_note_frequency` with octave shifts.
@@ -229,7 +239,7 @@ Binary at $116A6-$11C3D (extracted as z80_snd_drv.bin). Loaded via `Sound_LoadZ8
 - **Instruments**: Patched to YM regs (e.g., $30+ for operators).
 
 ## Known Issues/Limitations
-- **PCM Overlaps**: Some FM patches overlap PCM (e.g., $10820 in fm_instrument_patch_sfx_31). Modding may corrupt audio due to hardcoded address
+- **PCM Overlaps**: Some FM patches overlap PCM (e.g., `sfx_oooh_pcm_ofs` = $10820). Modding may corrupt audio due to hardcoded address
 - **Checksum Sensitivity**: Builds require exact extracts for bitwise match; minor ROM diffs break validation.
 - **Z80 Sound Driver**: There is an .lst file in the `sound` folder of the z80 sound driver disassembly, but I haven't gone through the effort of making it part of the build-- the z80 code extracted from the retail rom is used for the build.
 
