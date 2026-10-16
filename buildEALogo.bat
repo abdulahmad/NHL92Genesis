@@ -38,6 +38,6 @@ REM Run the assembler with all flags
   /o d- /o s- /o r+ /o l+ /o l. /o ow+ /o op- /o os+ /o oz+ /o omq- /o oaq+ /o osq+ ^
   %revFlag% %checksumFlag% ^
   "%workspaceFolder%src\EALogo.asm,%workspaceFolder%output\EALogo.bin,%workspaceFolder%output\EALogo,%workspaceFolder%output\EALogo" ^
-  > "%workspaceFolder%output\Build.log"
+  > "%workspaceFolder%output\BuildEALogo.log"
 
 endlocal

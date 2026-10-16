@@ -1,4 +1,5 @@
 const fs = require('fs').promises;
+const path = require('path');
 
 const endoffile = 0x7FE8A;
 const checksumoffset = 0x20; // insert checksum here
@@ -61,5 +62,6 @@ async function calculateChecksums(romPath) {
 }
 
 // Example usage
-const romPath = 'output/modified_nhl92.bin'; // Replace with your ROM file path
+// Usage: node tools/generateChecksum.js [rom.bin] (default output/modified_nhl92.bin)
+const romPath = process.argv[2] || path.join(__dirname, '..', 'output', 'modified_nhl92.bin');
 calculateChecksums(romPath).catch(() => process.exit(1));

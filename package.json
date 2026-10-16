@@ -3,24 +3,24 @@
   "version": "1.0.0",
   "description": "Build scripts for NHL92",
   "scripts": {
-    "extractassets": "node extractAssets.js nhl92retail.bin",
+    "assets": "node tools/prebuild.js retail",
+    "extractassets": "node tools/extractAssets92.js nhl92retail.bin",
     "asm": "build.bat",
     "asm:logo": "buildEALogo.bat",
     "asm:sound": "buildSound.bat",
-    "fixopcodes": "node fixopcodes.js \"output\\nhl92 .lst\" output\\nhl92.bin",
-    "fixopcodes:logo": "node fixopcodes.js \"output\\EALogo .lst\" output\\EALogo.bin",
-    "fixopcodes:sound": "node fixopcodes.js \"output\\Hockey .lst\" output\\Hockey.snd",
-    "verify:retail": "node verifyRom.js output/modified_nhl92.bin nhl92retail.bin",
-    "verify:reva": "node verifyRom.js output/modified_nhl92.bin nhl92retailRevA.bin",
-    "build:retail": "set rev=0&& set checksum=1&& npm run asm && npm run fixopcodes && npm run verify:retail",
-    "build:reva": "set rev=1&& set checksum=1&& npm run asm && npm run fixopcodes && npm run verify:reva",
-    "build:dev": "set rev=1&& set checksum=0&& npm run asm && npm run fixopcodes",
-    "build:logo": "set rev=0&& set checksum=1&& npm run asm:logo && npm run fixopcodes:logo",
-    "build:sound": "set rev=0&& set checksum=1&& npm run asm:sound && npm run fixopcodes:sound"
+    "fixopcodes": "node tools/fixopcodes.js \"output\\nhl92 .lst\" output\\nhl92.bin",
+    "fixopcodes:logo": "node tools/fixopcodes.js \"output\\EALogo .lst\" output\\EALogo.bin",
+    "fixopcodes:sound": "node tools/fixopcodes.js \"output\\Hockey .lst\" output\\Hockey.snd",
+    "verify:retail": "node tools/verifyRom.js output/modified_nhl92.bin nhl92retail.bin",
+    "verify:reva": "node tools/verifyRom.js output/modified_nhl92.bin nhl92retailRevA.bin",
+    "build:logo": "set rev=0&& set checksum=1&& node tools/prebuild.js retail && npm run asm:logo && npm run fixopcodes:logo",
+    "build:sound": "set rev=0&& set checksum=1&& node tools/prebuild.js retail && npm run asm:sound && npm run fixopcodes:sound",
+    "build:retail": "set rev=0&& set checksum=1&& node tools/prebuild.js retail && set NHL_PREBUILD_DONE=1&& npm run asm && npm run fixopcodes && npm run verify:retail",
+    "build:reva": "set rev=1&& set checksum=1&& node tools/prebuild.js reva && set NHL_PREBUILD_DONE=1&& npm run asm && npm run fixopcodes && npm run verify:reva",
+    "build:dev": "set rev=1&& set checksum=0&& node tools/prebuild.js dev && set NHL_PREBUILD_DONE=1&& npm run asm && npm run fixopcodes",
+    "checksum": "node tools/generateChecksum.js",
+    "clean": "node tools/clean.js",
+    "clean:all": "node tools/clean.js --all"
   },
-  "devDependencies": {
-    "crc-32": "^1.2.2"
-  },
-  "author": "",
   "license": "ISC"
 }

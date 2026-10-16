@@ -38,6 +38,6 @@ REM Run the assembler with all flags
   /o d- /o s- /o r+ /o l+ /o l. /o ow+ /o op- /o os+ /o oz+ /o omq- /o oaq+ /o osq+ ^
   %revFlag% %checksumFlag% ^
   "%workspaceFolder%src\sound\sound.asm,%workspaceFolder%output\Hockey.snd,%workspaceFolder%output\Hockey,%workspaceFolder%output\Hockey" ^
-  > "%workspaceFolder%output\Build.log"
+  > "%workspaceFolder%output\BuildSound.log"
 
 endlocal

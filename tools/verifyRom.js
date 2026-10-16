@@ -1,12 +1,12 @@
 // Compare a built ROM to a reference ROM. Exit 1 unless every byte matches.
-// Usage: node verifyRom.js <built.bin> <reference.bin> [maxMismatches]
+// Usage: node tools/verifyRom.js <built.bin> <reference.bin> [maxMismatches]
 const fs = require('fs');
 
 const [builtPath, referencePath, maxArg] = process.argv.slice(2);
 const maxMismatches = Number(maxArg || 16);
 
 if (!builtPath || !referencePath) {
-  console.error('Usage: node verifyRom.js <built.bin> <reference.bin> [maxMismatches]');
+  console.error('Usage: node tools/verifyRom.js <built.bin> <reference.bin> [maxMismatches]');
   process.exit(1);
 }
 
