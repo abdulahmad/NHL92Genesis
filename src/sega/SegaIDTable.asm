@@ -9,6 +9,7 @@
 	dc.b	'                '	; 		$160
 	dc.b	'                '	; 		$170
 	dc.b	'GM T-50236 -00'	; 05	$180	cartridge cat., product no., version no. (14 bytes)
+	; $18E words: 16-bit sum of $200 to the end of the ROM, from tools/generateChecksum.js (npm run checksum)
 	IF CHECKSUM=1 ; Security check enabled
 		IF REV=0 ; RETAIL
 			dc.w	$93B8		; 06	$18E	check sum data (installed by checsum program) (2 bytes)
@@ -19,7 +20,7 @@
 		dc.w	$0000				; 06	$18E	check sum data (installed by checsum program) (2 bytes)
 	ENDIF
 	dc.b	'J               '	; 07	$190	I/O peripheral info. (J=Control Pad) (16 bytes)
-	dc.l	$00000000,$0007FFFF	; 08	$1A0	cartridge size (start and end address) (16 bytes)
+	dc.l	$00000000,endofcart-1	; 08	$1A0	cartridge size (start and end address) (16 bytes). $0007FFFF
 	dc.l	$00FF0000,$00FFFFFF	; 09	$1A8	RAM size (start and end address) (16 bytes)
 	dc.b	'            '		; 10	$1B0	external RAM info. (12 bytes)
 	dc.b	'            '		; 11	$1BC	modem info. (12 bytes)
