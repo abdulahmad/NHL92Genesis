@@ -140,5 +140,12 @@ vite.config.ts.timestamp-*
 
 Extracted/**
 output/**
+
+# ROM dumps (not distributed; see README for file names and SHA-1)
 nhl*.bin
+/*.bin
+
+# Assembler outputs written outside output/
+src/**/*.lst
+src/**/*.sym
 nhl*.md

@@ -241,7 +241,7 @@ Binary at $116A6-$11C3D (extracted as z80_snd_drv.bin). Loaded via `Sound_LoadZ8
 ## Known Issues/Limitations
 - **PCM Overlaps**: Some FM patches overlap PCM (e.g., `sfx_oooh_pcm_ofs` = $10820). Modding may corrupt audio due to hardcoded address
 - **Checksum Sensitivity**: Builds require exact extracts for bitwise match; minor ROM diffs break validation.
-- **Z80 Sound Driver**: There is an .lst file in the `sound` folder of the z80 sound driver disassembly, but I haven't gone through the effort of making it part of the build-- the z80 code extracted from the retail rom is used for the build.
+- **Z80 Sound Driver**: There is an .lst file of the z80 sound driver disassembly in `docs/z80_snd_drv.lst`, but I haven't gone through the effort of making it part of the build-- the z80 code extracted from the retail rom is used for the build.
 
 ## Modding Tips
 - **Custom Music**: Edit `fmtune_pointer_table` / sequences. Add notes via freq tables; test envelopes for vibrato.
