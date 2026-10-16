@@ -15,9 +15,9 @@ const ROMS = {
     reva:   { label: 'NHL Hockey (NHL 92) Rev A', file: 'nhl92retailRevA.bin',
               sha1: '10b50ebf3db0b4d207e21acf4481eb704b3c45f9', size: 0x80000 },
 };
-// Every ROM listed for a target must be present. The assets are always extracted from the retail ROM
-// (first entry); the Rev A ROM is the reference the Rev A build is verified against.
-const TARGETS = { retail: ['retail'], reva: ['retail', 'reva'], dev: ['retail'] };
+// The ROM each target needs: retail and reva are verified against their own ROM; dev needs either one.
+// The assets are extracted from that ROM (retail and Rev A give identical assets).
+const TARGETS = { retail: ['retail'], reva: ['reva'], dev: ['retail', 'reva'] };
 // ---------------------------------------------------------------------------------------------
 const fs = require('fs');
 const path = require('path');
@@ -88,25 +88,26 @@ if (!TARGETS[target]) {
     process.exit(1);
 }
 
-// 1. The ROMs this build needs (all of them).
+// 1. The ROM this build needs (for dev, the first known ROM present).
 const candidates = TARGETS[target].map((id) => ROMS[id]);
 const problems = [];
+let romPath = null;
 for (const rom of candidates) {
     const r = checkRom(rom);
-    if (!r.ok) problems.push({ rom, r });
+    if (r.ok) { romPath = r.path; break; }
+    problems.push({ rom, r });
 }
-if (problems.length) {
+if (!romPath) {
     const lines = [];
     for (const { r } of problems.filter((x) => x.r.reason === 'wrong')) {
         lines.push(`Found ${r.path}, but it is not the right ROM:`);
         lines.push(`    its SHA-1 is ${r.sha1}, size ${sizeText(r.size)}.`);
         lines.push('    (a bad dump, a hack, another revision, or a byte-swapped / interleaved file)');
     }
-    lines.push(`This build needs ${candidates.length > 1 ? 'these ROMs' : 'this ROM'}, exactly the version shown:`);
+    lines.push(candidates.length > 1 ? 'This build needs one of these ROMs, exactly the version shown:' : 'This build needs this ROM, exactly the version shown:');
     for (const { rom } of problems) lines.push(romBlock(rom));
     stop(lines);
 }
-const romPath = path.join(ROOT, candidates[0].file);
 
 // 2. Extracted/ assets: extract again if missing or incomplete.
 const why = extractedState();

@@ -122,10 +122,15 @@ const assets = [
     { name: 'EASN.map.jim', folder: 'Graphics', start: 0x0007FC20, end: 0x0007FE8A }
 ];
 
-// Supported ROM. The assets are sliced from the retail ROM; the Rev A build uses the same assets.
+// Supported ROMs. The offsets in the asset list are retail offsets; map() turns one into the Rev A
+// offset (Rev A has 2 bytes less code before the team palettes and $1C bytes more before the sound
+// data). Both ROMs give identical assets.
 const VERSIONS = [
     { id: 'retail', label: 'NHL Hockey (NHL 92) retail (1991.MAY, GM T-50236 -00)', file: 'nhl92retail.bin',
-      sha1: '2337ad3c065f46edccf19007d7a5be80a97520d5', size: 0x80000 },
+      sha1: '2337ad3c065f46edccf19007d7a5be80a97520d5', size: 0x80000, map: (a) => a },
+    { id: 'reva', label: 'NHL Hockey (NHL 92) Rev A', file: 'nhl92retailRevA.bin',
+      sha1: '10b50ebf3db0b4d207e21acf4481eb704b3c45f9', size: 0x80000,
+      map: (a) => (a < 0x11DA ? a : a < 0xF4C8 ? a - 2 : a + 0x1C) },
 ];
 
 // Find the version of a ROM by SHA-1.
@@ -134,7 +139,7 @@ function detectVersion(data) {
     const v = VERSIONS.find((x) => x.sha1 === sha1);
     if (v) return { version: v, sha1 };
     let msg = `Unknown ROM: SHA-1 ${sha1}, ${data.length} bytes.\n`;
-    msg += 'Assets are extracted from this ROM only:\n' + VERSIONS.map((x) => `  ${x.label}: SHA-1 ${x.sha1} (${x.file})`).join('\n');
+    msg += 'Supported ROMs:\n' + VERSIONS.map((x) => `  ${x.label}: SHA-1 ${x.sha1} (${x.file})`).join('\n');
     return { version: null, sha1, msg };
 }
 
@@ -170,7 +175,8 @@ async function extractAssets(romPath, options = {}) {
             await fs.mkdir(outputDir, { recursive: true });
 
             // Extract data
-            const assetData = romData.slice(asset.start, asset.end);
+            const start = version.map(asset.start), end = version.map(asset.end - 1) + 1;
+            const assetData = romData.slice(start, end);
 
             // Write to file
             const outputPath = path.join(outputDir, asset.name);
@@ -178,7 +184,7 @@ async function extractAssets(romPath, options = {}) {
             written.push({ path: path.posix.join(asset.folder.replace(/\\/g, '/'), asset.name), size: assetData.length });
             
             if (extractOptions.verbose) {
-                console.log(`Extracted ${asset.name} (${assetData.length} bytes) from offset 0x${asset.start.toString(16)} to 0x${asset.end.toString(16)}`);
+                console.log(`Extracted ${asset.name} (${assetData.length} bytes) from offset 0x${start.toString(16)} to 0x${end.toString(16)}`);
                 console.log(`Saved to ${outputPath}`);
             } else {
                 console.log(`Extracted ${asset.name} to ${outputPath}`);

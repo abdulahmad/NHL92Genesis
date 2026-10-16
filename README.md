@@ -28,9 +28,9 @@ Built on the work that McMarkis (https://github.com/Mhopkinsinc/NHLHockey) did t
     | Retail (1991.MAY, GM T-50236 -00) | `nhl92retail.bin` | `2337ad3c065f46edccf19007d7a5be80a97520d5` | 524288 bytes (512 KB) |
     | Rev A | `nhl92retailRevA.bin` | `10b50ebf3db0b4d207e21acf4481eb704b3c45f9` | 524288 bytes (512 KB) |
 
-    The retail ROM is needed for every build (the assets are extracted from it). The Rev A ROM is only needed to verify the Rev A build.
+    The assets can be extracted from either ROM (both give identical assets). The retail build is verified against the retail ROM and the Rev A build against the Rev A ROM; the dev build needs either one.
 
-4. Build one of 3 versions. Each build first runs `tools/prebuild.js`, which checks the ROM(s) by SHA-1 and size (and stops with the expected file name, SHA-1 and size if one is missing or wrong), then extracts the assets into `Extracted/` with `tools/extractAssets92.js` if they are missing or incomplete. `build.bat` then builds the EA logo (`output/modified_EALogo.bin`) and the sound driver (`output/modified_Hockey.snd`) before the main ROM.
+4. Build one of 3 versions. Each build first runs `tools/prebuild.js`, which checks the ROM(s) by SHA-1 and size (and stops with the expected file name, SHA-1 and size if one is missing or wrong), then extracts the assets into `Extracted/` from that ROM with `tools/extractAssets92.js` if they are missing or incomplete. `build.bat` then builds the EA logo (`output/modified_EALogo.bin`) and the sound driver (`output/modified_Hockey.snd`) before the main ROM.
 
     - `npm run build:retail`: the `Retail` ROM, with the retail checksum validation check. Verified against `nhl92retail.bin`
     - `npm run build:reva`: the `Rev A` ROM, with the checksum validation check. Verified against `nhl92retailRevA.bin`
