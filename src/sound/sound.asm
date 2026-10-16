@@ -4,8 +4,8 @@
 ; Handles music and sound effects via Z80 and YM2612 sound chip
 
 ; Data Location
-fm_instrument_patch_sfx_id_3 = $12DE2 ; 12DE2 - 12A58 (sfx_puckwall1_pcm) - F4C8
-fm_instrument_patch_sfx_id_31 = $10820
+sfx_skate34_pcm_ofs = $12DE2 ; Hockey.snd offset of sfx_skate34_pcm (ROM $222AA - $F4C8), like the other PCM offsets passed to Sound_WriteYM2612; was fm_instrument_patch_sfx_id_3
+sfx_oooh_pcm_ofs = $10820 ; Hockey.snd offset of sfx_oooh_pcm (ROM $1FCE8 - $F4C8); was fm_instrument_patch_sfx_id_31
 
 ; Z80 Memory Map
 z80_ram = $A00000
@@ -567,42 +567,42 @@ p_initfx_fn:
     jmp     (a0)                    ; Jump to SFX handler
 
 
-sfx_pointer_table: 
-    dc.l    handle_sfx_siren        ; SFXsiren = 0
-    dc.l    handle_sfx_beep1        ; SFXbeep1 = 1
-    dc.l    handle_sfx_beep2        ; SFXbeep2 = 2
-    dc.l    handle_sfx_id_3         ; SFXcheck2 = 3
-    dc.l    handle_sfx_whistle      ; (Unused)
-    dc.l    handle_sfx_horn         ; SFXstdef, SFXpuckbody = 5
-    dc.l    handle_sfx_pass         ; (Unused)
-    dc.l    handle_sfx_shotbh       ; SFXpuckwall1 = 7
-    dc.l    handle_sfx_shotfh       ; SFXpuckget, SFXpuckice = 8
-    dc.l    handle_sfx_shotwiff     ; SFXpuckpost = 9
-    dc.l    handle_sfx_stdef        ; SFXwhistle = 10
-    dc.l    handle_sfx_puckget      ; SFXpass = 11
-    dc.l    handle_sfx_puckbody     ; SFXshotbh = 12
-    dc.l    handle_sfx_puckwall1    ; SFXshotfh = 13
-    dc.l    handle_sfx_puckwall2    ; SFXshotwiff = 14
-    dc.l    handle_sfx_puckwall3    ; SFXplayerwall = 15
-    dc.l    handle_sfx_puckpost     ; (Unused)
-    dc.l    handle_sfx_puckice      ; (Unused)
-    dc.l    handle_sfx_playerwall   ; (Unused)
-    dc.l    handle_sfx_check        ; SFXcheck = 18
-    dc.l    handle_sfx_check2       ; (Unused)
-    dc.l    handle_sfx_hithigh      ; SFXhithigh = 21
-    dc.l    handle_sfx_hitlow       ; SFXhitlow = 23
-    dc.l    handle_sfx_id_23        ; SFXhorn = 24
-    dc.l    handle_sfx_crowdcheer   ; SFXcrowdcheer = 25
-    dc.l    handle_sfx_crowdboo     ; SFXcrowdboo = 26
-    dc.l    handle_sfx_oooh         ; (Unused)
-    dc.l    handle_sfx_id_27        ; (Unused)
-    dc.l    handle_sfx_id_28        ; SFXpuckwall2 = 29
-    dc.l    handle_sfx_id_29        ; SFXpuckwall3 = 30
-    dc.l    handle_sfx_id_30        ; SFXoooh = 31
-    dc.l    handle_sfx_id_31        ; (Unused)
-    dc.l    handle_sfx_id_30        ; (Duplicate)
-    dc.l    handle_sfx_id_30        ; (Duplicate)
-    dc.l    handle_sfx_id_30        ; (Duplicate)
+sfx_pointer_table:  ; SFX IDs from ram.asm and EA's list
+    dc.l    handle_sfx_siren            ;  0 siren (SFXsiren)
+    dc.l    handle_sfx_skate1           ;  1 skating 1 (SFXbeep1)
+    dc.l    handle_sfx_skate2           ;  2 skating 2 (SFXbeep2)
+    dc.l    handle_sfx_skate3           ;  3 skating 3 (SFXcheck2)
+    dc.l    handle_sfx_skate4           ;  4 skating 4 (SFXskate4)
+    dc.l    handle_sfx_hitpuck          ;  5 stick hits puck (SFXstdef, SFXpuckbody)
+    dc.l    handle_sfx_hitboard1        ;  6 puck hits boards 1 (SFXhitboard1)
+    dc.l    handle_sfx_hitboard2        ;  7 puck hits boards 2 (SFXpuckwall1)
+    dc.l    handle_sfx_puckfaceoff      ;  8 puck faceoff / puck on ice (SFXpuckget, SFXpuckice)
+    dc.l    handle_sfx_post             ;  9 puck hits post (SFXpuckpost)
+    dc.l    handle_sfx_whistle          ; 10 whistle (SFXwhistle)
+    dc.l    handle_sfx_pass1            ; 11 pass (sample 1) (SFXpass)
+    dc.l    handle_sfx_pass2            ; 12 pass (sample 2) (SFXshotbh)
+    dc.l    handle_sfx_slapshot         ; 13 slap shot (SFXshotfh)
+    dc.l    handle_sfx_whiff            ; 14 shot whiff (SFXshotwiff)
+    dc.l    handle_sfx_playerboards1    ; 15 player hits boards 1 (SFXplayerwall)
+    dc.l    handle_sfx_playerboards2    ; 16 player hits boards 2 (SFXplayerwall2)
+    dc.l    handle_sfx_playerboards3    ; 17 player hits boards 3 (SFXplayerwall3)
+    dc.l    handle_sfx_check1           ; 18 check 1 (SFXcheck)
+    dc.l    handle_sfx_check2           ; 19 check 2 (SFXcheckb)
+    dc.l    handle_sfx_check3           ; 20 check 3 (SFXcheckc)
+    dc.l    handle_sfx_punch1           ; 21 punch 1 (SFXhithigh)
+    dc.l    handle_sfx_punch2           ; 22 punch 2 (SFXhitmid)
+    dc.l    handle_sfx_punch3           ; 23 punch 3 (SFXhitlow)
+    dc.l    handle_sfx_foghorn          ; 24 foghorn (SFXhorn)
+    dc.l    handle_sfx_crowdcheer       ; 25 crowd cheer (SFXcrowdcheer)
+    dc.l    handle_sfx_boo              ; 26 crowd boo (SFXcrowdboo)
+    dc.l    handle_sfx_hitboardquiet1   ; 27 puck hits boards, quieter 1 (SFXhitboardq1)
+    dc.l    handle_sfx_hitboardquiet2   ; 28 puck hits boards, quieter 2 (SFXhitboardq2)
+    dc.l    handle_sfx_hitboardquiet3   ; 29 puck hits boards, quieter 3 (SFXpuckwall2)
+    dc.l    handle_sfx_hitboardquiet4   ; 30 puck hits boards, quieter 4 (SFXpuckwall3)
+    dc.l    handle_sfx_oooh             ; 31 crowd oooh (SFXoooh)
+    dc.l    handle_sfx_hitboardquiet4   ; 32 unused: duplicate of 30, past the last SFX ID
+    dc.l    handle_sfx_hitboardquiet4   ; 33 unused: duplicate of 30, past the last SFX ID
+    dc.l    handle_sfx_hitboardquiet4   ; 34 unused: duplicate of 30, past the last SFX ID
 
 ; Processes SFX channels, parsing commands and updating frequency/volume.
 Sound_Process_SFXChannels:
@@ -750,18 +750,18 @@ Sound_WriteYM2612:
     move.b  #1,(z80_write_pending).l ; Set pending
     rts                             ; Return
 
-; Handles puck wall SFX 3.
-handle_sfx_puckwall3:
+; SFX 15: player hits boards 1.
+handle_sfx_playerboards1:
     move.l  #$53BE,d1               ; Load data
     move.b  #$13,d2                 ; Load param
     move.b  #1,d3                   ; Load param
     bsr.s   Sound_WriteYM2612       ; Write to YM2612
-    bsr.w   handle_sfx_pass         ; Handle pass SFX
+    bsr.w   handle_sfx_hitboard1         ; plus SFX 6 (puck hits boards 1)
     rts                             ; Return
 
-; Handles SFX ID 3.
-handle_sfx_id_3:
-    move.l  #fm_instrument_patch_sfx_id_3,d1 ; Load patch
+; SFX 3: skating 3.
+handle_sfx_skate3:
+    move.l  #sfx_skate34_pcm_ofs,d1 ; PCM sample offset
     move.b  #8,d2                   ; Load param
     move.b  #1,d3                   ; Load param
     bsr.s   Sound_WriteYM2612       ; Write to YM2612
@@ -775,200 +775,200 @@ configure_ym2612:
     bsr.s   Sound_WriteYM2612       ; Write to YM2612
     rts                             ; Return
 
-; Handles whistle SFX.
-handle_sfx_whistle:
-    move.l  #fm_instrument_patch_sfx_id_3,d1 ; Load patch
+; SFX 4: skating 4.
+handle_sfx_skate4:
+    move.l  #sfx_skate34_pcm_ofs,d1 ; PCM sample offset
     move.b  #$B,d2                  ; Load param
     move.b  #1,d3                   ; Load param
     bsr.w   Sound_WriteYM2612       ; Write to YM2612
     rts                             ; Return
 
-; Handles puck post SFX.
-handle_sfx_puckpost:
+; SFX 16: player hits boards 2.
+handle_sfx_playerboards2:
     move.l  #$53BE,d1               ; Load data
     move.b  #$18,d2                 ; Load param
     move.b  #1,d3                   ; Load param
     bsr.w   Sound_WriteYM2612       ; Write to YM2612
-    bsr.w   handle_sfx_pass         ; Handle pass
+    bsr.w   handle_sfx_hitboard1         ; plus SFX 6 (puck hits boards 1)
     rts                             ; Return
 
-; Handles puck ice SFX.
-handle_sfx_puckice:
+; SFX 17: player hits boards 3.
+handle_sfx_playerboards3:
     move.l  #$53BE,d1               ; Load data
     move.b  #$10,d2                 ; Load param
     move.b  #1,d3                   ; Load param
     bsr.w   Sound_WriteYM2612       ; Write to YM2612
-    bsr.w   handle_sfx_pass         ; Handle pass
+    bsr.w   handle_sfx_hitboard1         ; plus SFX 6 (puck hits boards 1)
     rts                             ; Return
 
-; Handles player wall SFX.
-handle_sfx_playerwall:
+; SFX 18: check 1.
+handle_sfx_check1:
     move.l  #$62A0,d1               ; Load data
     move.b  #$10,d2                 ; Load param
     move.b  #1,d3                   ; Load param
     bsr.w   Sound_WriteYM2612       ; Write to YM2612
     rts                             ; Return
 
-; Handles check SFX.
-handle_sfx_check:
+; SFX 19: check 2.
+handle_sfx_check2:
     move.l  #$62A0,d1               ; Load data
     move.b  #$13,d2                 ; Load param
     move.b  #1,d3                   ; Load param
     bsr.w   Sound_WriteYM2612       ; Write to YM2612
     rts                             ; Return
 
-; Handles check 2 SFX.
-handle_sfx_check2:
+; SFX 20: check 3.
+handle_sfx_check3:
     move.l  #$62A0,d1               ; Load data
     move.b  #$18,d2                 ; Load param
     move.b  #1,d3                   ; Load param
     bsr.w   Sound_WriteYM2612       ; Write to YM2612
     rts                             ; Return
 
-; Handles puck get SFX.
-handle_sfx_puckget:
+; SFX 11: pass (sample 1).
+handle_sfx_pass1:
     move.l  #$4498,d1               ; Load data
     move.b  #$C,d2                  ; Load param
     move.b  #2,d3                   ; Load param
     bsr.w   Sound_WriteYM2612       ; Write to YM2612
     rts                             ; Return
 
-; Handles puck body SFX.
-handle_sfx_puckbody:
+; SFX 12: pass (sample 2).
+handle_sfx_pass2:
     move.l  #$3590,d1               ; Load data
     move.b  #$C,d2                  ; Load param
     move.b  #2,d3                   ; Load param
     bsr.w   Sound_WriteYM2612       ; Write to YM2612
     rts                             ; Return
 
-; Handles puck wall 1 SFX.
-handle_sfx_puckwall1:
+; SFX 13: slap shot.
+handle_sfx_slapshot:
     move.l  #$2776,d1               ; Load data
     move.b  #$B,d2                  ; Load param
     move.b  #2,d3                   ; Load param
     bsr.w   Sound_WriteYM2612       ; Write to YM2612
     rts                             ; Return
 
-; Handles hit high SFX.
-handle_sfx_hithigh:
+; SFX 21: punch 1.
+handle_sfx_punch1:
     move.l  #$73E2,d1               ; Load data
     move.b  #$15,d2                 ; Load param
     move.b  #2,d3                   ; Load param
     bsr.w   Sound_WriteYM2612       ; Write to YM2612
     rts                             ; Return
 
-; Handles SFX ID 23.
-handle_sfx_id_23:
+; SFX 23: punch 3.
+handle_sfx_punch3:
     move.l  #$73E2,d1               ; Load data
     move.b  #$1F,d2                 ; Load param
     move.b  #2,d3                   ; Load param
     bsr.w   Sound_WriteYM2612       ; Write to YM2612
     rts                             ; Return
 
-; Handles hit low SFX.
-handle_sfx_hitlow:
+; SFX 22: punch 2.
+handle_sfx_punch2:
     move.l  #$73E2,d1               ; Load data
     move.b  #$19,d2                 ; Load param
     move.b  #2,d3                   ; Load param
     bsr.w   Sound_WriteYM2612       ; Write to YM2612
     rts                             ; Return
 
-; Handles crowd boo SFX.
-handle_sfx_crowdboo:
+; SFX 25: crowd cheer.
+handle_sfx_crowdcheer:
     move.l  #$793C,d1               ; Load data
     move.b  #$13,d2                 ; Load param
     move.b  #0,d3                   ; Load param
     bsr.w   Sound_WriteYM2612       ; Write to YM2612
     rts                             ; Return
 
-; Handles oooh SFX.
-handle_sfx_oooh:
+; SFX 26: crowd boo.
+handle_sfx_boo:
     move.l  #$E2BE,d1               ; Load data
     move.b  #$18,d2                 ; Load param
     move.b  #0,d3                   ; Load param
     bsr.w   Sound_WriteYM2612       ; Write to YM2612
     rts                             ; Return
 
-; Handles SFX ID 31.
-handle_sfx_id_31:
-    move.l  #fm_instrument_patch_sfx_id_31,d1 ; Load patch
+; SFX 31: crowd oooh.
+handle_sfx_oooh:
+    move.l  #sfx_oooh_pcm_ofs,d1 ; PCM sample offset
     move.b  #$1B,d2                 ; Load param
     move.b  #0,d3                   ; Load param
     bsr.w   Sound_WriteYM2612       ; Write to YM2612
     rts                             ; Return
 
-; Handles shot FH SFX.
-handle_sfx_shotfh:
+; SFX 8: puck faceoff / puck on ice.
+handle_sfx_puckfaceoff:
     move.l  #$AF0,d1                ; Load pointer
     moveq   #1,d7                   ; Channel 1
     bsr.w   Sound_InitSFXChannel    ; Init channel
     rts                             ; Return
 
-; Handles shot wiff SFX.
-handle_sfx_shotwiff:
+; SFX 9: puck hits post.
+handle_sfx_post:
     move.l  #$B46,d1                ; Load pointer
     moveq   #2,d7                   ; Channel 2
     bsr.w   Sound_InitSFXChannel    ; Init channel
     rts                             ; Return
 
-; Handles horn SFX.
-handle_sfx_horn:
+; SFX 5: stick hits puck.
+handle_sfx_hitpuck:
     move.l  #$B28,d1                ; Load pointer
     moveq   #1,d7                   ; Channel 1
     bsr.w   Sound_InitSFXChannel    ; Init channel
     rts                             ; Return
 
-; Handles pass SFX.
-handle_sfx_pass:
+; SFX 6: puck hits boards 1.
+handle_sfx_hitboard1:
     move.l  #$BDE,d1                ; Load pointer
     moveq   #2,d7                   ; Channel 2
     bsr.w   Sound_InitSFXChannel    ; Init channel
     rts                             ; Return
 
-; Handles shot BH SFX.
-handle_sfx_shotbh:
+; SFX 7: puck hits boards 2.
+handle_sfx_hitboard2:
     move.l  #$C38,d1                ; Load pointer
     moveq   #2,d7                   ; Channel 2
     bsr.w   Sound_InitSFXChannel    ; Init channel
     rts                             ; Return
 
-; Handles SFX ID 27.
-handle_sfx_id_27:
+; SFX 27: puck hits boards, quieter 1.
+handle_sfx_hitboardquiet1:
     move.l  #$BFC,d1                ; Load pointer
     moveq   #2,d7                   ; Channel 2
     bsr.w   Sound_InitSFXChannel    ; Init channel
     rts                             ; Return
 
-; Handles SFX ID 29.
-handle_sfx_id_29:
+; SFX 29: puck hits boards, quieter 3.
+handle_sfx_hitboardquiet3:
     move.l  #$C56,d1                ; Load pointer
     moveq   #2,d7                   ; Channel 2
     bsr.w   Sound_InitSFXChannel    ; Init channel
     rts                             ; Return
 
-; Handles SFX ID 28.
-handle_sfx_id_28:
+; SFX 28: puck hits boards, quieter 2.
+handle_sfx_hitboardquiet2:
     move.l  #$C1A,d1                ; Load pointer
     moveq   #2,d7                   ; Channel 2
     bsr.w   Sound_InitSFXChannel    ; Init channel
     rts                             ; Return
 
-; Handles SFX ID 30.
-handle_sfx_id_30:
+; SFX 30: puck hits boards, quieter 4.
+handle_sfx_hitboardquiet4:
     move.l  #$C74,d1                ; Load pointer
     moveq   #2,d7                   ; Channel 2
     bsr.w   Sound_InitSFXChannel    ; Init channel
     rts                             ; Return
 
-; Handles puck wall 2 SFX.
-handle_sfx_puckwall2:
+; SFX 14: shot whiff.
+handle_sfx_whiff:
     move.l  #$BC0,d1                ; Load pointer
     moveq   #1,d7                   ; Channel 1
     bsr.w   Sound_InitSFXChannel    ; Init channel
     rts                             ; Return
 
-; Handles crowd cheer SFX.
-handle_sfx_crowdcheer:
+; SFX 24: foghorn.
+handle_sfx_foghorn:
     move.l  #$B64,d1                ; Load pointer
     moveq   #0,d7                   ; Channel 0
     bsr.w   Sound_InitSFXChannel    ; Init channel
@@ -977,28 +977,28 @@ handle_sfx_crowdcheer:
     bsr.w   Sound_InitSFXChannel    ; Init channel
     rts                             ; Return
 
-; Handles stdef SFX.
-handle_sfx_stdef:
+; SFX 10: whistle.
+handle_sfx_whistle:
     move.l  #$B00,d1                ; Load pointer
     moveq   #4,d7                   ; Channel 4
     bsr.w   Sound_InitSFXChannel    ; Init channel
     rts                             ; Return
 
-; Handles beep 1 SFX.
-handle_sfx_beep1:
+; SFX 1: skating 1.
+handle_sfx_skate1:
     move.l  #$CA2,d1                ; Load pointer
     moveq   #3,d7                   ; Channel 3
     bsr.w   Sound_InitSFXChannel    ; Init channel
     rts                             ; Return
 
-; Handles beep 2 SFX.
-handle_sfx_beep2:
+; SFX 2: skating 2.
+handle_sfx_skate2:
     move.l  #$C92,d1                ; Load pointer
     moveq   #3,d7                   ; Channel 3
     bsr.w   Sound_InitSFXChannel    ; Init channel
     rts                             ; Return
 
-; Handles siren SFX.
+; SFX 0: siren.
 handle_sfx_siren:
     move.l  #$AAC,d1                ; Load pointer
     moveq   #0,d7                   ; Channel 0
@@ -1013,36 +1013,36 @@ sfx_siren_cmdstream_ch0 ; 0xFF74-0xFF90
     incbin ..\Extracted\Sound\sfx_siren_cmdstream_ch0.bin
 sfx_siren_cmdstream_ch1 ; 0xFF90-0xFFB8
     incbin ..\Extracted\Sound\sfx_siren_cmdstream_ch1.bin
-sfx_shotfh_cmdstream ; 0xFFB8-0xFFC8
-    incbin ..\Extracted\Sound\sfx_shotfh_cmdstream.bin
-sfx_stdef_cmdstream ; 0xFFC8-0xFFF0
-    incbin ..\Extracted\Sound\sfx_stdef_cmdstream.bin
-sfx_horn_cmdstream ; 0xFFF0-0x1000E
-    incbin ..\Extracted\Sound\sfx_horn_cmdstream.bin
-sfx_shotwiff_cmdstream ; 0x1000E-0x1002C
-    incbin ..\Extracted\Sound\sfx_shotwiff_cmdstream.bin
-sfx_crowdcheer_cmdstream_ch0 ; 0x1002C-0x10054
-    incbin ..\Extracted\Sound\sfx_crowdcheer_cmdstream_ch0.bin
-sfx_crowdcheer_cmdstream_ch1 ; 0x10054-0x10088
-    incbin ..\Extracted\Sound\sfx_crowdcheer_cmdstream_ch1.bin
-sfx_puckwall2_cmdstream ; 0x10088-0x100A6 // there is a stop at 100A0?
-    incbin ..\Extracted\Sound\sfx_puckwall2_cmdstream.bin
-sfx_pass_cmdstream ; 0x100A6-0x100C4 //puckwall3-2, puckpost-2, puckice-2
-    incbin ..\Extracted\Sound\sfx_pass_cmdstream.bin
-sfx_id_27_cmdstream ; 0x100C4-0x100E2
-    incbin ..\Extracted\Sound\sfx_id_27_cmdstream.bin
-sfx_id_28_cmdstream ; 0x100E2-0x10100
-    incbin ..\Extracted\Sound\sfx_id_28_cmdstream.bin
-sfx_shotbh_cmdstream ; 0x10100-0x1011E
-    incbin ..\Extracted\Sound\sfx_shotbh_cmdstream.bin
-sfx_id_29_cmdstream ; 0x1011E-0x1013C
-    incbin ..\Extracted\Sound\sfx_id_29_cmdstream.bin
-sfx_id_30_cmdstream ; 0x1013C-0x1015A
-    incbin ..\Extracted\Sound\sfx_id_30_cmdstream.bin
-sfx_beep2_cmdstream ; 0x1015A-0x1016A
-    incbin ..\Extracted\Sound\sfx_beep2_cmdstream.bin
-sfx_beep1_cmdstream ; 0x1016A-0x1017A
-    incbin ..\Extracted\Sound\sfx_beep1_cmdstream.bin
+sfx_puckfaceoff_cmdstream ; 0xFFB8-0xFFC8
+    incbin ..\Extracted\Sound\sfx_puckfaceoff_cmdstream.bin
+sfx_whistle_cmdstream ; 0xFFC8-0xFFF0
+    incbin ..\Extracted\Sound\sfx_whistle_cmdstream.bin
+sfx_hitpuck_cmdstream ; 0xFFF0-0x1000E
+    incbin ..\Extracted\Sound\sfx_hitpuck_cmdstream.bin
+sfx_post_cmdstream ; 0x1000E-0x1002C
+    incbin ..\Extracted\Sound\sfx_post_cmdstream.bin
+sfx_foghorn_cmdstream_ch0 ; 0x1002C-0x10054
+    incbin ..\Extracted\Sound\sfx_foghorn_cmdstream_ch0.bin
+sfx_foghorn_cmdstream_ch1 ; 0x10054-0x10088
+    incbin ..\Extracted\Sound\sfx_foghorn_cmdstream_ch1.bin
+sfx_whiff_cmdstream ; 0x10088-0x100A6 // there is a stop at 100A0?
+    incbin ..\Extracted\Sound\sfx_whiff_cmdstream.bin
+sfx_hitboard1_cmdstream ; 0x100A6-0x100C4 // also chained from SFX 15-17 (player hits boards)
+    incbin ..\Extracted\Sound\sfx_hitboard1_cmdstream.bin
+sfx_hitboardquiet1_cmdstream ; 0x100C4-0x100E2
+    incbin ..\Extracted\Sound\sfx_hitboardquiet1_cmdstream.bin
+sfx_hitboardquiet2_cmdstream ; 0x100E2-0x10100
+    incbin ..\Extracted\Sound\sfx_hitboardquiet2_cmdstream.bin
+sfx_hitboard2_cmdstream ; 0x10100-0x1011E
+    incbin ..\Extracted\Sound\sfx_hitboard2_cmdstream.bin
+sfx_hitboardquiet3_cmdstream ; 0x1011E-0x1013C
+    incbin ..\Extracted\Sound\sfx_hitboardquiet3_cmdstream.bin
+sfx_hitboardquiet4_cmdstream ; 0x1013C-0x1015A
+    incbin ..\Extracted\Sound\sfx_hitboardquiet4_cmdstream.bin
+sfx_skate2_cmdstream ; 0x1015A-0x1016A
+    incbin ..\Extracted\Sound\sfx_skate2_cmdstream.bin
+sfx_skate1_cmdstream ; 0x1016A-0x1017A
+    incbin ..\Extracted\Sound\sfx_skate1_cmdstream.bin
 
 note_frequency_table: ;0x1017A-0x101D9
     dcb.b 4,2
@@ -1947,34 +1947,34 @@ Sound_LoadZ80Program:
 
 Z80_Program_Code
     incbin ..\Extracted\Sound\z80_snd_drv.bin
-; { name: 'sfx_puckwall1_pcm.bin', folder: 'Sound', start: 0x11C3E, end: 0x12A58 },
-sfx_puckwall1_pcm
-    incbin ..\Extracted\Sound\sfx_puckwall1_pcm.bin
-; { name: 'sfx_puckbody_pcm.bin', folder: 'Sound', start: 0x12A58, end: 0x13960 }, // also partially used for fm_instrument_patch_sfx_id_3
-sfx_puckbody_pcm
-    incbin ..\Extracted\Sound\sfx_puckbody_pcm.bin
-; { name: 'sfx_puckget_pcm.bin', folder: 'Sound', start: 0x13960, end: 0x14886 },
-sfx_puckget_pcm
-    incbin ..\Extracted\Sound\sfx_puckget_pcm.bin
-; { name: 'sfx_puckpost-1_pcm.bin', folder: 'Sound', start: 0x14886, end: 0x15768 }, // puckwall3-1, puckice-1
-sfx_puckpost_pcm
-    incbin ..\Extracted\Sound\sfx_puckpost-1_pcm.bin
-; { name: 'sfx_check_pcm.bin', folder: 'Sound', start: 0x15768, end: 0x168AA }, // check2, playerwall
+; { name: 'sfx_slapshot_pcm.bin', folder: 'Sound', start: 0x11C3E, end: 0x12A58 },
+sfx_slapshot_pcm
+    incbin ..\Extracted\Sound\sfx_slapshot_pcm.bin
+; { name: 'sfx_pass2_pcm.bin', folder: 'Sound', start: 0x12A58, end: 0x13960 },
+sfx_pass2_pcm
+    incbin ..\Extracted\Sound\sfx_pass2_pcm.bin
+; { name: 'sfx_pass1_pcm.bin', folder: 'Sound', start: 0x13960, end: 0x14886 },
+sfx_pass1_pcm
+    incbin ..\Extracted\Sound\sfx_pass1_pcm.bin
+; { name: 'sfx_playerboards_pcm.bin', folder: 'Sound', start: 0x14886, end: 0x15768 }, // SFX 15-17 (player hits boards)
+sfx_playerboards_pcm
+    incbin ..\Extracted\Sound\sfx_playerboards_pcm.bin
+; { name: 'sfx_check_pcm.bin', folder: 'Sound', start: 0x15768, end: 0x168AA }, // SFX 18-20 (checks)
 sfx_check_pcm
     incbin ..\Extracted\Sound\sfx_check_pcm.bin
-; { name: 'sfx_highhigh_pcm.bin', folder: 'Sound', start: 0x168AA, end: 0x16E04 }, // offset in code is 168B0; hitlow, sfx_id_23
-sfx_highhigh_pcm
-    incbin ..\Extracted\Sound\sfx_highhigh_pcm.bin
-; { name: 'sfx_crowdboo_pcm.bin', folder: 'Sound', start: 0x16E04, end: 0x1D786 },
-sfx_crowdboo_pcm
-    incbin ..\Extracted\Sound\sfx_crowdboo_pcm.bin
-; { name: 'sfx_oooh_pcm.bin', folder: 'Sound', start: 0x1D786, end: 0x1FCE8 },
+; { name: 'sfx_punch_pcm.bin', folder: 'Sound', start: 0x168AA, end: 0x16E04 }, // offset in code is 168B0; SFX 21-23 (punches)
+sfx_punch_pcm
+    incbin ..\Extracted\Sound\sfx_punch_pcm.bin
+; { name: 'sfx_crowdcheer_pcm.bin', folder: 'Sound', start: 0x16E04, end: 0x1D786 },
+sfx_crowdcheer_pcm
+    incbin ..\Extracted\Sound\sfx_crowdcheer_pcm.bin
+; { name: 'sfx_boo_pcm.bin', folder: 'Sound', start: 0x1D786, end: 0x1FCE8 },
+sfx_boo_pcm
+    incbin ..\Extracted\Sound\sfx_boo_pcm.bin
+; { name: 'sfx_oooh_pcm.bin', folder: 'Sound', start: 0x1FCE8, end: 0x222AA }, // SFX 31 (oooh), offset in code is 1FD88
 sfx_oooh_pcm
     incbin ..\Extracted\Sound\sfx_oooh_pcm.bin
-; { name: 'sfx_id_31_pcm.bin', folder: 'Sound', start: 0x1FCE8, end: 0x222AA }, // offset in code is 1FD88
-sfx_id_31_pcm
-    incbin ..\Extracted\Sound\sfx_id_31_pcm.bin
 ; // is there a break at 0x1FFA3?
-; { name: 'sfx_check3_pcm.bin', folder: 'Sound', start: 0x222AA, end: 0x00024214 }, // sfx_id_4
-sfx_check3_pcm
-    incbin ..\Extracted\Sound\sfx_check3_pcm.bin
+; { name: 'sfx_skate34_pcm.bin', folder: 'Sound', start: 0x222AA, end: 0x00024214 }, // SFX 3-4 (skating 3 and 4)
+sfx_skate34_pcm
+    incbin ..\Extracted\Sound\sfx_skate34_pcm.bin

@@ -29,6 +29,7 @@ SngTitle	=	1	;Title song
 SngEOP	=	0	;End of Period song
 SngEOG	=	3	;End of Game song
 SngPO	=	4	;playoffs music
+SngUnused	=	2	;unused song slot (added)
 
 ;sfx????? sound effects equates for Rob's sound file
 SFXskatestop	=	-1
@@ -61,6 +62,17 @@ SFXhitlow	=	23
 SFXcrowdcheer	=	25
 SFXcrowdboo	=	26
 SFXoooh	=	31
+
+;SFX IDs without an EA equate (added; IDs from EA's list, see sfx_pointer_table in sound\sound.asm)
+SFXskate4	=	4	;skating 4
+SFXhitboard1	=	6	;puck hits boards 1
+SFXplayerwall2	=	16	;player hits boards 2
+SFXplayerwall3	=	17	;player hits boards 3
+SFXcheckb	=	19	;check 2
+SFXcheckc	=	20	;check 3
+SFXhitmid	=	22	;punch 2
+SFXhitboardq1	=	27	;puck hits boards, quieter 1
+SFXhitboardq2	=	28	;puck hits boards, quieter 2
 
 goalline	=	176	;distance from blue line to goalline
 
