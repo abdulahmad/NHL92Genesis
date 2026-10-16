@@ -51,6 +51,7 @@ g_AudioUpdateFlag   EQU $FFFFFFF9    ; Byte: Flag to update Z80 audio data (1 = 
 
 ; Channel Structure (size $48 bytes)
 channel_flags           EQU 0    ; Byte: Flags (bit 1: modulation, bit 2: ?, bit 3: active)
+channel_note            EQU 2    ; Byte: Final note value
 channel_pitch_adjust    EQU 3    ; Byte: Pitch adjustment value
 channel_current_pos     EQU 4    ; Long: Current position in track data
 channel_base_ptr        EQU 8    ; Long: Base pointer to track data
@@ -61,6 +62,7 @@ channel_octave          EQU $13  ; Byte: Octave value
 channel_freq_high_part  EQU $14  ; Byte: Frequency high part
 channel_envelope_param  EQU $15  ; Byte: Envelope parameter
 channel_modulation_val  EQU $16  ; Byte: Modulation value
+channel_unused_ptr      EQU $18  ; Long: Loaded but not used (old modulation pointer?)
 channel_envelope_current EQU $1C ; Long: Current envelope position
 channel_envelope_base   EQU $20  ; Long: Base envelope pointer
 channel_note_offset     EQU $24  ; Byte: Note offset from instrument
@@ -78,6 +80,23 @@ channel_initial_freq_counter EQU $40 ; Byte: Initial frequency counter
 channel_instrument_id   EQU $41  ; Byte: Current instrument ID
 channel_modulation_counter EQU $42 ; Byte: Modulation counter
 channel_loop_counter    EQU $44  ; Long: Loop counter
+CHANNEL_SIZE            EQU $48  ; Bytes per channel structure
+
+; Sound Workspace (offsets from g_SoundWorkspace)
+ws_music_flag           EQU 0    ; Byte: Music enable flag ($FF = on)
+ws_tempo                EQU 2    ; Byte: Tempo multiplier / base duration (from the track table)
+ws_num_channels         EQU 4    ; Byte: Number of channels to process (from the track table)
+ws_channels             EQU 6    ; First channel structure (6 x CHANNEL_SIZE)
+ws_z80_buffer           EQU $1BA ; Z80 output buffer, 8 bytes per channel
+ws_state_flag           EQU $1F1 ; Byte: State flag (pause / init complete?)
+
+; Z80 output buffer slot (8 bytes per channel, at ws_z80_buffer)
+z80slot_offset_high     EQU 1    ; Byte: High byte of data offset
+z80slot_offset_low      EQU 2    ; Byte: Low byte of data offset
+z80slot_keyon           EQU 3    ; Byte: Key-on flag
+z80slot_freq_update     EQU 4    ; Byte: Frequency update flag
+z80slot_coarse_freq     EQU 5    ; Byte: Coarse frequency + octave
+z80slot_fine_freq       EQU 6    ; Byte: Fine frequency
 
 ; Sound Code Entry Points
 p_music_vblank:               ; (VBlank handler)
@@ -118,40 +137,40 @@ Sound_InitMusicTrack:
     move.l  (g_CurrentTrackID).l,d0 ; Load the current music track ID into d0.
     lea     (g_SoundWorkspace).l,a3 ; Load base address of sound workspace into a3.
     lea     p_music_vblank(pc),a4   ; Load base address for music data offsets into a4 (used for PC-relative addressing).
-    lea     6(a3),a1                ; Set a1 to point to the first channel structure in workspace (offset 6).
+    lea     ws_channels(a3),a1                ; Set a1 to point to the first channel structure in workspace (offset 6).
     andi.w  #$FF,d0                 ; Mask track ID to 8 bits (0-255).
     mulu.w  #$1A,d0                 ; Multiply by 26 (size of each entry in fmtune_pointer_table).
     lea     fmtune_pointer_table(pc),a0 ; Load address of track pointer table into a0.
-    move.b  (a0,d0.w),4(a3)         ; Store byte from table (likely number of FM channels) at workspace offset 4.
-    move.b  1(a0,d0.w),2(a3)        ; Store next byte from table (likely number of PSG channels) at workspace offset 2.
+    move.b  (a0,d0.w),ws_num_channels(a3)         ; Store byte from table (likely number of FM channels) at workspace offset 4.
+    move.b  1(a0,d0.w),ws_tempo(a3)        ; Store next byte from table (likely number of PSG channels) at workspace offset 2.
     moveq   #0,d7                   ; Clear d7 (channel index counter, 0 to 5).
 .init_channel_loop                  ; Loop to initialize each of the 6 channels.
-    move.w  #1,$10(a1)              ; Set tick counter for note duration to 1 (forces immediate processing?).
+    move.w  #1,channel_duration(a1)              ; Set tick counter for note duration to 1 (forces immediate processing?).
     clr.w   (a1)                    ; Clear word at channel base (flags or status).
-    move.b  #0,$15(a1)              ; Clear envelope index or flag.
-    move.b  #0,3(a1)                ; Clear pitch offset or transpose value.
-    move.l  #0,$44(a1)              ; Clear loop counter or stack pointer.
-    move.b  #$FF,$41(a1)            ; Set instrument ID to $FF (invalid/default?).
+    move.b  #0,channel_envelope_param(a1)              ; Clear envelope index or flag.
+    move.b  #0,channel_pitch_adjust(a1)                ; Clear pitch offset or transpose value.
+    move.l  #0,channel_loop_counter(a1)              ; Clear loop counter or stack pointer.
+    move.b  #$FF,channel_instrument_id(a1)            ; Set instrument ID to $FF (invalid/default?).
     lea     fmtune_pointer_table(pc),a0 ; Reload track table address.
     movea.l 2(a0,d0.w),a0           ; Load long pointer from table +2 + (channel*4) into a0 (channel data start).
     adda.l  a4,a0                   ; Add base offset to make it absolute.
-    move.l  a0,8(a1)                ; Store as base pointer for channel (loop reset point?).
-    move.l  a0,$C(a1)               ; Store same as current loop stack pointer.
-    addq.l  #2,$C(a1)               ; Skip 2 bytes in loop stack (header?).
+    move.l  a0,channel_base_ptr(a1)                ; Store as base pointer for channel (loop reset point?).
+    move.l  a0,channel_loop_ptr(a1)               ; Store same as current loop stack pointer.
+    addq.l  #2,channel_loop_ptr(a1)               ; Skip 2 bytes in loop stack (header?).
     movea.w (a0),a0                 ; Load word offset from base pointer into a0.
     adda.l  a4,a0                   ; Add base to make absolute track data pointer.
-    move.l  a0,4(a1)                ; Store as current track position pointer.
-    adda.w  #$48,A1                 ; Advance a1 to next channel structure (0x48 bytes per channel).
+    move.l  a0,channel_current_pos(a1)                ; Store as current track position pointer.
+    adda.w  #CHANNEL_SIZE,A1        ; Advance a1 to next channel structure (0x48 bytes per channel).
     addq.w  #4,d0                   ; Advance table offset by 4 (next long pointer in table entry).
     addq.w  #1,d7                   ; Increment channel index.
     cmp.w   #6,d7                   ; Check if all 6 channels are done.
     bne.s   .init_channel_loop      ; Loop if not.
     PUSHO                           ; Save current options state
 	    OPT OZ-                     ; Disable zero displacement optimization
-	    st  0(a3)                   ; Set workspace byte 0 to $FF (enable music flag?).
+	    st  ws_music_flag(a3)                   ; Set workspace byte 0 to $FF (enable music flag?).
 	    POPO                        ; Restore previous options state
     
-    move.b  #1,$1F1(a3)             ; Set another flag at workspace +0x1F1 to 1 (pause or init complete?).
+    move.b  #1,ws_state_flag(a3)             ; Set another flag at workspace +0x1F1 to 1 (pause or init complete?).
     rts                             ; Return from subroutine.
 
     lea     (g_SoundWorkspace).l,a3
@@ -159,7 +178,7 @@ Sound_InitMusicTrack:
     beq.s   Sound_PauseMusic_Return
     PUSHO                           ; Save current options state
 	    OPT OZ-                     ; Disable zero displacement optimization
-	    st  0(a3)                   ; Set workspace byte 0 to $FF (enable music flag?).
+	    st  ws_music_flag(a3)                   ; Set workspace byte 0 to $FF (enable music flag?).
 	    POPO                        ; Restore previous options state
     rts
 
@@ -177,7 +196,7 @@ Sound_StopMusic:
     lea     (g_SoundWorkspace).l,a3     ; Load workspace
     PUSHO                           ; Save current options state
 	    OPT OZ-                     ; Disable zero displacement optimization
-	    sf  0(a3)                   ; Clear music active flag
+	    sf  ws_music_flag(a3)                   ; Clear music active flag
 	    POPO                        ; Restore previous options state
     bsr.w   Sound_ResetAllSFX           ; Reset all channel data
     bsr.w   configure_ym2612            ; Configure YM2612 chip
@@ -189,9 +208,9 @@ Sound_PauseMusic:
     lea     (g_SoundWorkspace).l,a3     ; Load workspace
     PUSHO                           ; Save current options state
 	    OPT OZ-                     ; Disable zero displacement optimization
-	    sf  0(a3)                   ; Clear music active flag
+	    sf  ws_music_flag(a3)                   ; Clear music active flag
 	    POPO                        ; Restore previous options state
-    move.b  #0,$1F1(a3)                 ; Clear state flag
+    move.b  #0,ws_state_flag(a3)                 ; Clear state flag
     bsr.w   Sound_ResetAllSFX           ; Reset all channels
     bsr.w   configure_ym2612            ; Configure YM2612
     bsr.w   Sound_ResetChannelVolumes   ; Clear output buffers
@@ -232,30 +251,30 @@ Sound_ProcessMusicChannels: ; Processes all music channels, updating their state
     lea     p_music_vblank(pc),a4       ; Load base offset for PC-relative data access into a4.
     PUSHO                           ; Save current options state
 	    OPT OZ-                     ; Disable zero displacement optimization
-	    tst.b   0(a3)               ; Test music enable flag (byte 0 in workspace).
+	    tst.b   ws_music_flag(a3)               ; Test music enable flag (byte 0 in workspace).
 	    POPO                        ; Restore previous options state
     beq.w   .process_sound_effects      ; If zero (disabled), skip music processing and go to SFX.
     moveq   #0,d7                       ; Clear d7 (channel index, starts at 0).
-    move.b  4(a3),d7                    ; Load number of channels to process from workspace offset 4 (from init).
+    move.b  ws_num_channels(a3),d7                    ; Load number of channels to process from workspace offset 4 (from init).
 .process_channel                        ; Main loop to process each channel.
     moveq   #0,d0                       ; Clear d0.
-    move.w  #$48,d0                     ; Channel structure size (0x48 bytes).
+    move.w  #CHANNEL_SIZE,d0            ; Channel structure size (0x48 bytes).
     mulu.w  d7,d0                       ; Compute offset for current channel (d7 * 0x48).
-    lea     6(a3),a0                    ; Set a0 to first channel base (workspace +6).
+    lea     ws_channels(a3),a0                    ; Set a0 to first channel base (workspace +6).
     adda.l  d0,a0                       ; Add offset to point to current channel.
-    movea.l 4(a0),a1                    ; Load current track position pointer into a1.
-    movea.l $18(a0),a5                  ; Unused? (possibly old modulation pointer, but not used here).
-    lea     $1BA(a3),a6                 ; Set a6 to Z80 output buffer area (workspace +0x1BA).
+    movea.l channel_current_pos(a0),a1                    ; Load current track position pointer into a1.
+    movea.l channel_unused_ptr(a0),a5                  ; Unused? (possibly old modulation pointer, but not used here).
+    lea     ws_z80_buffer(a3),a6                 ; Set a6 to Z80 output buffer area (workspace +0x1BA).
     move.w  d7,d0                       ; Copy channel index to d0.
     lsl.w   #3,d0                       ; Multiply by 8 (size of each channel's output slot).
     adda.l  d0,a6                       ; Add to get pointer to this channel's Z80 data slot.
-    subq.w  #1,$10(a0)                  ; Decrement note duration tick counter.
+    subq.w  #1,channel_duration(a0)                  ; Decrement note duration tick counter.
     beq.s   .process_track_data         ; If zero, time to parse new track data.
-    cmpi.w  #1,$10(a0)                  ; Check if counter is now 1 (last tick of note).
+    cmpi.w  #1,channel_duration(a0)                  ; Check if counter is now 1 (last tick of note).
     bne.w   .update_channel_modulation  ; If not, skip to modulation/envelope update.
     btst    #3,(a0)                     ; Test bit 3 of channel flags (sustain or key-off flag?).
     bne.w   .update_channel_modulation  ; If set, no key-off, go to modulation.
-    move.b  #0,3(a6)                    ; Clear Z80 key-on flag (send key-off).
+    move.b  #0,z80slot_keyon(a6)                    ; Clear Z80 key-on flag (send key-off).
     move.b  #0,(g_AudioUpdateFlag).l    ; Set global audio update flag to 0 (needs update).
     bra.w   .update_channel_modulation  ; Proceed to modulation/envelope.
 .process_track_data                     ; Parse commands from track data stream.
@@ -288,9 +307,9 @@ Sound_ProcessMusicChannels: ; Processes all music channels, updating their state
     beq.w   .handle_sound_effect        ; If equal, trigger SFX.
     subi.b  #$A0,d0                     ; Subtract $A0 (for duration commands $8C-$9F?).
     moveq   #0,d1                       ; Clear d1.
-    move.b  2(a3),d1                    ; Load tempo multiplier or base duration from workspace +2.
+    move.b  ws_tempo(a3),d1                    ; Load tempo multiplier or base duration from workspace +2.
     mulu.w  d1,d0                       ; Multiply adjusted command value by base.
-    move.w  d0,$26(a0)                  ; Store as base note duration for channel.
+    move.w  d0,channel_timing(a0)                  ; Store as base note duration for channel.
     bra.s   .parse_track_command        ; Continue parsing.
 .handle_instrument                      ; Handle $80: Set instrument.
     move.b  (a1)+,d0                    ; Read instrument ID.
@@ -301,12 +320,12 @@ Sound_ProcessMusicChannels: ; Processes all music channels, updating their state
     add.l   d0,d1                       ; Add to d1 (full offset).
     adda.l  d0,a5                       ; Add to a5 (pointer to instrument data).
     move.w  d1,d0                       ; Copy offset to d0.
-    move.b  d0,2(a6)                    ; Store low byte of offset in Z80 slot +2.
+    move.b  d0,z80slot_offset_low(a6)                    ; Store low byte of offset in Z80 slot +2.
     lsr.w   #8,d1                       ; Shift high byte.
-    move.b  d1,1(a6)                    ; Store high byte in Z80 slot +1.
+    move.b  d1,z80slot_offset_high(a6)                    ; Store high byte in Z80 slot +1.
     move.b  #0,(a6)                     ; Clear Z80 slot +0 (instrument change flag?).
     move.b  #0,(g_AudioUpdateFlag).l    ; Set update flag.
-    move.b  $1A(a5),$24(a0)             ; Store byte from instrument +0x1A (octave shift?) to channel +0x24.
+    move.b  $1A(a5),channel_note_offset(a0)             ; Store byte from instrument +0x1A (octave shift?) to channel +0x24.
     bra.w   .parse_track_command        ; Continue parsing.
 .set_channel_sustain_flag               ; Handle $83: Set sustain flag (no key-off at note end).
     bset    #2,(a0)                     ; Set bit 2 in channel flags.
@@ -315,8 +334,8 @@ Sound_ProcessMusicChannels: ; Processes all music channels, updating their state
     bsr.w   p_turnoff_fn                ; Call turn off function.
     rts                                 ; Exit processing (stops channel?).
 .handle_modulation                      ; Handle $81: Set modulation parameters.
-    move.b  (a1)+,$42(a0)               ; Read and store modulation delay.
-    move.b  (a1)+,$16(a0)               ; Read and store modulation delta (signed?).
+    move.b  (a1)+,channel_modulation_counter(a0)               ; Read and store modulation delay.
+    move.b  (a1)+,channel_modulation_val(a0)               ; Read and store modulation delta (signed?).
     bset    #1,(a0)                     ; Set modulation enable flag (bit 1).
     bra.w   .parse_track_command        ; Continue.
 .handle_envelope                        ; Handle $86: Set volume envelope.
@@ -325,14 +344,14 @@ Sound_ProcessMusicChannels: ; Processes all music channels, updating their state
     lsl.w   #2,d0                       ; Multiply by 4 (long pointers).
     move.l  (a2,d0.w),d0                ; Load pointer.
     add.l   a4,d0                       ; Add base offset.
-    move.l  d0,$20(a0)                  ; Store as envelope base.
-    move.b  (a1)+,$15(a0)               ; Read and store envelope speed or initial index.
+    move.l  d0,channel_envelope_base(a0)                  ; Store as envelope base.
+    move.b  (a1)+,channel_envelope_param(a0)               ; Read and store envelope speed or initial index.
     bra.w   .parse_track_command        ; Continue.
 .handle_clear_envelope
-    move.b  #0,$15(a0)              ; Clear envelope flag/speed
+    move.b  #0,channel_envelope_param(a0)              ; Clear envelope flag/speed
     bra.w   .parse_track_command    ; Continue
 .handle_pitch_adjust
-    move.b  (a1)+,3(a0)             ; Read and store signed pitch offset
+    move.b  (a1)+,channel_pitch_adjust(a0)             ; Read and store signed pitch offset
     bra.w   .parse_track_command    ; Continue
 .handle_skip
     move.b  (a1)+,d0                ; Read skip count
@@ -341,8 +360,8 @@ Sound_ProcessMusicChannels: ; Processes all music channels, updating their state
     bset    #3,(a0)                 ; Set bit 3
     bra.w   .parse_track_command    ; Continue
 .handle_loop
-    movea.l $C(a0),a2               ; Load loop stack pointer into a2
-    cmpi.w  #0,$44(a0)              ; Check loop counter
+    movea.l channel_loop_ptr(a0),a2               ; Load loop stack pointer into a2
+    cmpi.w  #0,channel_loop_counter(a0)              ; Check loop counter
     bne.s   .decrement_loop         ; If non-zero, decrement and loop
 .parse_loop_command
     tst.w   (a2)                    ; Test word at stack
@@ -354,10 +373,10 @@ Sound_ProcessMusicChannels: ; Processes all music channels, updating their state
 .advance_loop
     movea.w (a2)+,a1                ; Load offset, advance a2
     adda.l  a4,a1                   ; Add base
-    move.l  a2,$C(a0)               ; Update stack pointer
+    move.l  a2,channel_loop_ptr(a0)               ; Update stack pointer
     bra.w   .parse_track_command    ; Continue parsing at new position
 .loop_reset
-    movea.l 8(a0),a2                ; Reset stack to channel base
+    movea.l channel_base_ptr(a0),a2                ; Reset stack to channel base
     bra.s   .advance_loop           ; Advance
 .loop_new_track
     move.w  2(a2),d0                ; Read new track ID
@@ -365,12 +384,12 @@ Sound_ProcessMusicChannels: ; Processes all music channels, updating their state
     bsr.w   p_initune_fn            ; Call init tune function
     rts                             ; Exit (starts new track)
 .loop_setup
-    move.w  2(a2),$44(a0)           ; Read and store loop count
+    move.w  2(a2),channel_loop_counter(a0)           ; Read and store loop count
     movea.w -2(a2),a1               ; Load loop position (previous word?)
     adda.l  a4,a1                   ; Add base
     bra.w   .parse_track_command    ; Parse from there
 .decrement_loop
-    subq.w  #1,$44(a0)              ; Decrement counter
+    subq.w  #1,channel_loop_counter(a0)              ; Decrement counter
     beq.s   .advance_loop_data      ; If zero, advance past setup
     movea.w -2(a2),a1               ; Else, load loop position
     adda.l  a4,a1                   ; Add base
@@ -387,43 +406,43 @@ Sound_ProcessMusicChannels: ; Processes all music channels, updating their state
 .handle_note
     cmp.b   #$60,d0                 ; Compare to $60 (rest?)
     bne.s   .process_note_frequency ; If not, process as note
-    move.w  $26(a0),$10(a0)         ; Set duration counter to base duration (rest)
-    move.l  a1,4(a0)                ; Update track position
-    move.b  #0,3(a6)                ; Clear key-on in Z80
+    move.w  channel_timing(a0),channel_duration(a0)         ; Set duration counter to base duration (rest)
+    move.l  a1,channel_current_pos(a0)                ; Update track position
+    move.b  #0,z80slot_keyon(a6)                ; Clear key-on in Z80
     move.b  #0,(g_AudioUpdateFlag).l ; Set update flag
-    clr.b   $25(a0)                 ; Clear envelope counter or age
+    clr.b   channel_note_counter(a0)                 ; Clear envelope counter or age
     bra.w   .finish_channel         ; Finish channel
 .process_note_frequency
-    add.b   $24(a0),d0              ; Add instrument octave shift
-    add.b   3(a0),d0                ; Add pitch transpose
-    move.b  d0,2(a0)                ; Store final note value
-    move.l  a1,4(a0)                ; Update track position
-    move.w  $26(a0),$10(a0)         ; Set duration counter
+    add.b   channel_note_offset(a0),d0              ; Add instrument octave shift
+    add.b   channel_pitch_adjust(a0),d0                ; Add pitch transpose
+    move.b  d0,channel_note(a0)                ; Store final note value
+    move.l  a1,channel_current_pos(a0)                ; Update track position
+    move.w  channel_timing(a0),channel_duration(a0)         ; Set duration counter
     clr.l   d0                      ; Clear d0
     lea     note_frequency_table(pc),a2 ; Load frequency table
-    move.b  2(a0),d0                ; Get note
+    move.b  channel_note(a0),d0                ; Get note
     adda.l  d0,a2                   ; Index table
     move.b  (a2),d2                 ; Read frequency byte
-    move.b  d2,5(a6)                ; Store in Z80 slot +5 (coarse freq?)
+    move.b  d2,z80slot_coarse_freq(a6)                ; Store in Z80 slot +5 (coarse freq?)
     move.b  d2,d3                   ; Copy
     andi.b  #7,d2                   ; Mask low 3 bits (fine freq?)
-    move.b  d2,$12(a0)              ; Store channel fine freq base
+    move.b  d2,channel_freq_low(a0)              ; Store channel fine freq base
     andi.b  #$38,d3                 ; Mask mid 3 bits (octave?)
-    move.b  d3,$14(a0)              ; Store channel octave bits
+    move.b  d3,channel_freq_high_part(a0)              ; Store channel octave bits
     lea     note_octave_table(pc),a2 ; Load octave table
     adda.l  d0,a2                   ; Index
     move.b  (a2),d2                 ; Read octave value
-    move.b  d2,$13(a0)              ; Store in channel
-    move.b  d2,6(a6)                ; Store in Z80 slot +6 (fine freq?)
-    move.b  #0,4(a6)                ; Clear Z80 slot +4 (freq update flag?)
+    move.b  d2,channel_octave(a0)              ; Store in channel
+    move.b  d2,z80slot_fine_freq(a6)                ; Store in Z80 slot +6 (fine freq?)
+    move.b  #0,z80slot_freq_update(a6)                ; Clear Z80 slot +4 (freq update flag?)
     move.b  #0,(g_AudioUpdateFlag).l ; Set update flag
     btst    #2,(a0)                 ; Test sustain flag
     bne.s   .finish_channel         ; If set, no key-on/envelope reset
-    move.l  $20(a0),$1C(a0)         ; Reset current envelope pointer to base
-    clr.b   $25(a0)                 ; Clear envelope age/counter
-    move.b  #1,3(a6)                ; Set key-on flag in Z80
+    move.l  channel_envelope_base(a0),channel_envelope_current(a0)         ; Reset current envelope pointer to base
+    clr.b   channel_note_counter(a0)                 ; Clear envelope age/counter
+    move.b  #1,z80slot_keyon(a6)                ; Set key-on flag in Z80
 .finish_channel
-    addq.b  #1,$25(a0)              ; Increment envelope age
+    addq.b  #1,channel_note_counter(a0)              ; Increment envelope age
     dbf     d7,.process_channel     ; Decrement channel count, loop if more
 .process_sound_effects
     bsr.w   Sound_Process_SFXChannels ; Process SFX channels
@@ -432,42 +451,42 @@ Sound_ProcessMusicChannels: ; Processes all music channels, updating their state
     clr.w   d1                      ; Clear d1 (modulation accumulator)
     btst    #1,(a0)                 ; Test modulation enable
     beq.s   .check_envelope         ; If not, skip
-    subq.b  #1,$42(a0)              ; Decrement mod delay
+    subq.b  #1,channel_modulation_counter(a0)              ; Decrement mod delay
     bne.s   .apply_modulation       ; If not zero, apply
     bclr    #1,(a0)                 ; Clear mod enable if delay expired
 .apply_modulation
-    move.b  $16(a0),d1              ; Load mod delta
+    move.b  channel_modulation_val(a0),d1              ; Load mod delta
     ext.w   d1                      ; Sign extend
-    add.w   $12(a0),d1              ; Add to fine freq base
-    move.w  d1,$12(a0)              ; Store back
-    tst.b   $15(a0)                 ; Test envelope flag
+    add.w   channel_freq_low(a0),d1              ; Add to fine freq base
+    move.w  d1,channel_freq_low(a0)              ; Store back
+    tst.b   channel_envelope_param(a0)                 ; Test envelope flag
     beq.s   .output_frequency       ; If zero, output freq with mod
 .check_envelope
     clr.w   d1                      ; Clear d1 (envelope delta)
-    move.b  $15(a0),d1              ; Load envelope speed/index
+    move.b  channel_envelope_param(a0),d1              ; Load envelope speed/index
     beq.w   .output_frequency2      ; If zero, no envelope, output
     bpl.s   .apply_envelope         ; If positive, use as multiplier
-    move.b  $25(a0),d1              ; If negative, use age shifted
+    move.b  channel_note_counter(a0),d1              ; If negative, use age shifted
     lsr.b   #1,d1                   ; Halve age for index
 .apply_envelope
-    movea.l $1C(a0),a2              ; Load current envelope pointer
+    movea.l channel_envelope_current(a0),a2              ; Load current envelope pointer
     move.b  (a2)+,d0                ; Read envelope value, advance
     cmp.b   #$84,d0                 ; Check for loop marker $84
     bne.s   .use_envelope           ; If not, use value
-    movea.l $20(a0),a2              ; Reset to envelope base
+    movea.l channel_envelope_base(a0),a2              ; Reset to envelope base
     move.b  (a2)+,d0                ; Read first value
 .use_envelope
     ext.w   d0                      ; Sign extend envelope value
     muls.w  d0,d1                   ; Multiply by index/multiplier
-    add.w   $12(a0),d1              ; Add to fine freq (volume envelope affects freq? Wait, likely vibrato envelope)
-    move.l  a2,$1C(a0)              ; Update envelope pointer
+    add.w   channel_freq_low(a0),d1              ; Add to fine freq (volume envelope affects freq? Wait, likely vibrato envelope)
+    move.l  a2,channel_envelope_current(a0)              ; Update envelope pointer
 .output_frequency
     move.w  d1,d3                   ; Copy adjusted fine freq
     lsr.w   #8,d3                   ; Shift high byte (overflow?)
-    or.b    $14(a0),d3              ; OR with octave bits
-    move.b  d3,5(a6)                ; Store in Z80 coarse freq + octave
-    move.b  d1,6(a6)                ; Store low byte in Z80 fine freq
-    move.b  #0,4(a6)                ; Clear freq update flag
+    or.b    channel_freq_high_part(a0),d3              ; OR with octave bits
+    move.b  d3,z80slot_coarse_freq(a6)                ; Store in Z80 coarse freq + octave
+    move.b  d1,z80slot_fine_freq(a6)                ; Store low byte in Z80 fine freq
+    move.b  #0,z80slot_freq_update(a6)                ; Clear freq update flag
     move.b  #0,(g_AudioUpdateFlag).l ; Set update flag
 .output_frequency2
     bra.w   .finish_channel         ; Finish
@@ -532,17 +551,17 @@ Sound_InitSFXChannel:
     lea     (g_SoundWorkspace).l,a3 ; Load workspace base
     lea     p_music_vblank(pc),a4   ; Load base for PC-relative
     moveq   #0,d0                   ; Clear d0
-    move.w  #$48,d0                 ; Channel size
+    move.w  #CHANNEL_SIZE,d0        ; Channel size
     mulu.w  d7,d0                   ; Compute offset
-    lea     6(a3),a0                ; Point to channel base
+    lea     ws_channels(a3),a0                ; Point to channel base
     adda.l  d0,a0                   ; Add offset
     add.l   a4,d1                   ; Add base to d1 (pointer?)
-    move.l  d1,$2C(a0)              ; Store in effect base
-    move.l  d1,$28(a0)              ; Store in effect current
+    move.l  d1,channel_effect_base(a0)              ; Store in effect base
+    move.l  d1,channel_effect_current(a0)              ; Store in effect current
     moveq   #0,d1                   ; Clear d1
-    move.b  d1,$3C(a0)              ; Clear freq counter
-    move.b  d1,$3D(a0)              ; Clear delay counter
-    move.b  #4,$3E(a0)              ; Set effect state to 4 (init?)
+    move.b  d1,channel_freq_counter(a0)              ; Clear freq counter
+    move.b  d1,channel_delay_counter(a0)              ; Clear delay counter
+    move.b  #4,channel_effect_state(a0)              ; Set effect state to 4 (init?)
     rts                             ; Return
 
 ; Resets all SFX active flags and channel volumes.
@@ -610,34 +629,34 @@ Sound_Process_SFXChannels:
     moveq   #5,d7                   ; Set channel count (0-5)
 .process_effect_channel
     moveq   #0,d0                   ; Clear d0
-    move.w  #$48,d0                 ; Channel size
+    move.w  #CHANNEL_SIZE,d0        ; Channel size
     mulu.w  d7,d0                   ; Compute offset
-    lea     6(a3),a0                ; Point to channel base
+    lea     ws_channels(a3),a0                ; Point to channel base
     adda.l  d0,a0                   ; Add offset
-    movea.l $28(a0),a1              ; Load current effect position
-    lea     $1BA(a3),a6             ; Z80 output buffer
+    movea.l channel_effect_current(a0),a1              ; Load current effect position
+    lea     ws_z80_buffer(a3),a6             ; Z80 output buffer
     move.w  d7,d0                   ; Copy channel index
     lsl.w   #3,d0                   ; Multiply by 8
     adda.l  d0,a6                   ; Add to buffer pointer
-    move.b  $3E(a0),d0              ; Load effect state
+    move.b  channel_effect_state(a0),d0              ; Load effect state
     cmp.b   #0,d0                   ; Check if inactive
     beq.w   .next_effect_channel    ; If yes, next channel
     cmp.b   #1,d0                   ; Check if playing
     beq.w   .process_effect         ; If yes, process
     cmp.b   #3,d0                   ; Check if stopping
     bne.s   .stop_effect            ; If not, stop
-    move.b  #0,3(a6)                ; Clear key-on
+    move.b  #0,z80slot_keyon(a6)                ; Clear key-on
     move.b  #0,(g_AudioUpdateFlag).l ; Set update flag
-    move.b  #0,$3E(a0)              ; Set state to inactive
+    move.b  #0,channel_effect_state(a0)              ; Set state to inactive
     bra.w   .next_effect_channel    ; Next channel
 .stop_effect
-    move.b  #0,3(a6)                ; Clear key-on
+    move.b  #0,z80slot_keyon(a6)                ; Clear key-on
     move.b  #0,(g_AudioUpdateFlag).l ; Set update flag
-    move.b  #1,$3E(a0)              ; Set state to 1 (playing?)
+    move.b  #1,channel_effect_state(a0)              ; Set state to 1 (playing?)
 .process_effect
-    cmpi.b  #0,$3C(a0)              ; Check freq counter
+    cmpi.b  #0,channel_freq_counter(a0)              ; Check freq counter
     bne.w   .update_frequency       ; If set, update freq
-    cmpi.b  #0,$3D(a0)              ; Check delay counter
+    cmpi.b  #0,channel_delay_counter(a0)              ; Check delay counter
     bne.w   .update_delay           ; If set, update delay
     move.b  #0,$3F(a0)              ; Clear state byte
 .parse_effect_command
@@ -657,63 +676,63 @@ Sound_Process_SFXChannels:
     beq.w   .effect_loop            ; Handle loop
     bra.s   .parse_effect_command   ; Continue parsing
 .effect_stop
-    move.b  #0,3(a6)                ; Clear key-on
+    move.b  #0,z80slot_keyon(a6)                ; Clear key-on
     move.b  #0,(g_AudioUpdateFlag).l ; Set update flag
-    move.b  #0,$3E(a0)              ; Set inactive
+    move.b  #0,channel_effect_state(a0)              ; Set inactive
     bra.w   .next_effect_channel    ; Next
 .effect_instrument
     move.b  (a1)+,d0                ; Read ID
-    cmp.b   $41(a0),d0              ; Compare to current
+    cmp.b   channel_instrument_id(a0),d0              ; Compare to current
     beq.s   .effect_output          ; If same, skip
-    move.b  d0,$41(a0)              ; Store new ID
+    move.b  d0,channel_instrument_id(a0)              ; Store new ID
     move.l  #$2A5,d1                ; Instrument base
     lsl.w   #5,d0                   ; *32
     add.l   d0,d1                   ; Add offset
     move.w  d1,d0                   ; Copy
-    move.b  d0,2(a6)                ; Store low
+    move.b  d0,z80slot_offset_low(a6)                ; Store low
     lsr.w   #8,d1                   ; High
-    move.b  d1,1(a6)                ; Store high
+    move.b  d1,z80slot_offset_high(a6)                ; Store high
     move.b  #0,(a6)                 ; Clear flag
 .effect_output
-    move.b  #1,3(a6)                ; Set key-on
+    move.b  #1,z80slot_keyon(a6)                ; Set key-on
     move.b  #0,(g_AudioUpdateFlag).l ; Set update
     bra.w   .parse_effect_command   ; Continue
 .effect_frequency
     move.b  (a1)+,d0                ; Read counter
-    move.b  d0,$3C(a0)              ; Store freq counter
-    move.b  d0,$40(a0)              ; Store initial
+    move.b  d0,channel_freq_counter(a0)              ; Store freq counter
+    move.b  d0,channel_initial_freq_counter(a0)              ; Store initial
     move.l  (a1)+,d0                ; Read freq data
-    move.l  d0,$30(a0)              ; Store freq data
-    move.l  d0,$34(a0)              ; Store current freq
-    move.l  (a1)+,$38(a0)           ; Store increment
-    move.l  a1,$28(a0)              ; Update position
+    move.l  d0,channel_freq_data(a0)              ; Store freq data
+    move.l  d0,channel_current_freq(a0)              ; Store current freq
+    move.l  (a1)+,channel_freq_increment(a0)           ; Store increment
+    move.l  a1,channel_effect_current(a0)              ; Update position
     bra.s   .output_effect_frequency ; Output freq
 .effect_delay
-    move.b  (a1)+,$3D(a0)           ; Store delay
+    move.b  (a1)+,channel_delay_counter(a0)           ; Store delay
     move.b  #0,$3F(a0)              ; Clear flag
     bra.w   .parse_effect_command   ; Continue
 .effect_alt_delay
-    move.b  (a1)+,$3D(a0)           ; Store delay
+    move.b  (a1)+,channel_delay_counter(a0)           ; Store delay
     move.b  #1,$3F(a0)              ; Set flag
     bra.w   .parse_effect_command   ; Continue
 .effect_loop
-    movea.l $2C(a0),a1              ; Reset to base
+    movea.l channel_effect_base(a0),a1              ; Reset to base
     bra.w   .parse_effect_command   ; Continue
 .update_delay
-    subq.b  #1,$3D(a0)              ; Decrement delay
-    move.l  $30(a0),$34(a0)         ; Reset current freq
-    move.b  $40(a0),$3C(a0)         ; Reset freq counter
+    subq.b  #1,channel_delay_counter(a0)              ; Decrement delay
+    move.l  channel_freq_data(a0),channel_current_freq(a0)         ; Reset current freq
+    move.b  channel_initial_freq_counter(a0),channel_freq_counter(a0)         ; Reset freq counter
     cmpi.b  #0,$3F(a0)              ; Check flag
     beq.w   .output_effect_frequency ; If zero, output
     move.b  #1,(a6)                 ; Set flag?
     move.b  #0,(g_AudioUpdateFlag).l ; Set update
     bra.w   .output_effect_frequency ; Output
 .update_frequency
-    move.l  $38(a0),d0              ; Load increment
-    add.l   d0,$34(a0)              ; Add to current
-    subq.b  #1,$3C(a0)              ; Decrement counter
+    move.l  channel_freq_increment(a0),d0              ; Load increment
+    add.l   d0,channel_current_freq(a0)              ; Add to current
+    subq.b  #1,channel_freq_counter(a0)              ; Decrement counter
 .output_effect_frequency
-    move.l  $34(a0),d0              ; Load current freq
+    move.l  channel_current_freq(a0),d0              ; Load current freq
     moveq   #0,d1                   ; Clear d1
 .normalize_frequency
     cmp.l   #$7FF,d0                ; Check if > $7FF
@@ -725,9 +744,9 @@ Sound_Process_SFXChannels:
     or.l    d0,d1                   ; OR with d1
     move.l  d1,d0                   ; Copy
     lsr.w   #8,d1                   ; Shift high
-    move.b  d1,5(a6)                ; Store coarse
-    move.b  d0,6(a6)                ; Store fine
-    move.b  #0,4(a6)                ; Clear flag
+    move.b  d1,z80slot_coarse_freq(a6)                ; Store coarse
+    move.b  d0,z80slot_fine_freq(a6)                ; Store fine
+    move.b  #0,z80slot_freq_update(a6)                ; Clear flag
     move.b  #0,(g_AudioUpdateFlag).l ; Set update
 .next_effect_channel
     dbf     d7,.process_effect_channel ; Loop for next channel
