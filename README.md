@@ -48,6 +48,21 @@ Other scripts:
 
 All the build tools are in `tools/`.
 
+## Build steps explained
+
+`tools/build.js` prints one line per step with a short note under it, and the step's result under that:
+
+1. **prebuild**: check the retail (or Rev A) ROM and extract graphics/sound assets into `Extracted/`.
+2. **logo**: SNASM68k builds the EA logo intro (`output/modified_EALogo.bin`), then its opcodes are patched.
+3. **sound**: SNASM68k builds the sound driver and music (`output/modified_Hockey.snd`), then its opcodes are patched.
+4. **assemble**: SNASM68k turns `src/hockey.asm`, with the logo and sound, into a raw ROM image.
+5. **fixopcodes**: patch the instructions where SNASM picks a different encoding than EA's original assembler.
+6. **verify**: compare byte-for-byte with the retail or Rev A ROM. Dev builds are not verified.
+
+In a terminal, each step turns a spinner while it runs and is redrawn with a green check or a red cross when it ends. Values are bold, `OK` and `MATCH` are green, and failures are red. The colours are off when the output is not a terminal, with `NO_COLOR` set, or with `--no-color`.
+
+A failing step prints `FAILED` (or `MISMATCH`), the relevant log lines (`output/build/Build_nhl92.log` for the assembler) and `BUILD FAILED at <step>`, and exits 1. `npm run clean` reports what it removed from `output/` and `Extracted/`.
+
 # Documentation
 
 ## Developing on this build
