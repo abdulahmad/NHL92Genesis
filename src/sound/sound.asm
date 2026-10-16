@@ -4,8 +4,49 @@
 ; Handles music and sound effects via Z80 and YM2612 sound chip
 
 ; Data Location
-sfx_skate34_pcm_ofs = $12DE2 ; Hockey.snd offset of sfx_skate34_pcm (ROM $222AA - $F4C8), like the other PCM offsets passed to Sound_WriteYM2612; was fm_instrument_patch_sfx_id_3
+sfx_skating34_pcm_ofs = $12DE2 ; Hockey.snd offset of sfx_skating34_pcm (ROM $222AA - $F4C8), like the other PCM offsets passed to Sound_WriteYM2612; was fm_instrument_patch_sfx_id_3
 sfx_oooh_pcm_ofs = $10820 ; Hockey.snd offset of sfx_oooh_pcm (ROM $1FCE8 - $F4C8); was fm_instrument_patch_sfx_id_31
+
+; Sound effect and music numbers, named as in EA's sound list (src/_docs/SOUNDTAB.DOC).
+; The game uses its own SFX... / Sng... equates (src/ram.asm) for the same numbers.
+siren             EQU 0  ; FM siren
+skating1          EQU 1  ; FM skate and stop short
+skating2          EQU 2  ; FM skate and stop short
+skating3          EQU 3  ; FM skating turn short
+skating4          EQU 4  ; FM skating turn short
+hitpuck           EQU 5  ; FM hit puck
+hitboard          EQU 6  ; FM hit board loud
+hitboard2         EQU 7  ; FM hit board lower pitch loud
+puck_faceoff      EQU 8  ; FM puck hits ice on face off
+bounce_goal       EQU 9  ; FM puck bounce off goal post
+whistle           EQU 10 ; FM whistle
+sam_pass1         EQU 11 ; sample pass shot #1
+sam_pass2         EQU 12 ; sample pass shot #2 more beef
+sam_puck2_slap    EQU 13 ; sample slap shot
+whiff             EQU 14 ; FM whiff (miss puck on slap shot)
+sam_hitboard1     EQU 15 ; sample player hits boards 1
+sam_hitboard2     EQU 16 ; ditto at different playback rate
+sam_hitboard3     EQU 17 ; ditto at different playback rate
+sam_hit1          EQU 18 ; sample player hits (checks) another player 1
+sam_hit2          EQU 19 ; ditto at different playback rate
+sam_hit3          EQU 20 ; ditto at different playback rate
+sam_punch1        EQU 21 ; sample fighting punch sound
+sam_punch2        EQU 22 ; ditto at different playback rate
+sam_punch3        EQU 23 ; ditto at different playback rate
+foghorn           EQU 24 ; FM fog horn end of period
+sam_crowdgoal     EQU 25 ; sample crowd cheer
+sam_booing        EQU 26 ; sample short booing
+hitboardvolm      EQU 27 ; hit board1 medium volume
+hitboardvols      EQU 28 ; hit board1 softer volume
+hitboard2volm     EQU 29 ; hit board2 medium volume
+hitboard2vols     EQU 30 ; hit board2 softer volume
+oooh              EQU 31 ; crowd oooh (not in soundtab.doc; SFXoooh in ram.asm)
+
+song_endofperiod  EQU 0  ; END OF PERIOD
+song_splash       EQU 1  ; SPLASH
+song_unused       EQU 2  ; (unused/reserved)
+song_endofgame    EQU 3  ; END OF GAME
+song_playofftree  EQU 4  ; PLAY OFF TREE SCREEN
 
 ; Z80 Memory Map
 z80_ram = $A00000
@@ -126,7 +167,7 @@ clear_workspace_loop:
 
 ; Music Track Initialization Function
 p_initune_fn:
-    move.l  d0,(g_CurrentTrackID).l ; Store track ID (e.g., SngTitle=1)
+    move.l  d0,(g_CurrentTrackID).l ; Store track ID (e.g., splash=1)
     move.b  #1,(g_MusicInitFlag).l  ; Set flag to initialize music
     rts                             ; Return
 
@@ -586,42 +627,42 @@ p_initfx_fn:
     jmp     (a0)                    ; Jump to SFX handler
 
 
-sfx_pointer_table:  ; SFX IDs from ram.asm and EA's list
-    dc.l    handle_sfx_siren            ;  0 siren (SFXsiren)
-    dc.l    handle_sfx_skate1           ;  1 skating 1 (SFXbeep1)
-    dc.l    handle_sfx_skate2           ;  2 skating 2 (SFXbeep2)
-    dc.l    handle_sfx_skate3           ;  3 skating 3 (SFXcheck2)
-    dc.l    handle_sfx_skate4           ;  4 skating 4 (SFXskate4)
-    dc.l    handle_sfx_hitpuck          ;  5 stick hits puck (SFXstdef, SFXpuckbody)
-    dc.l    handle_sfx_hitboard1        ;  6 puck hits boards 1 (SFXhitboard1)
-    dc.l    handle_sfx_hitboard2        ;  7 puck hits boards 2 (SFXpuckwall1)
-    dc.l    handle_sfx_puckfaceoff      ;  8 puck faceoff / puck on ice (SFXpuckget, SFXpuckice)
-    dc.l    handle_sfx_post             ;  9 puck hits post (SFXpuckpost)
-    dc.l    handle_sfx_whistle          ; 10 whistle (SFXwhistle)
-    dc.l    handle_sfx_pass1            ; 11 pass (sample 1) (SFXpass)
-    dc.l    handle_sfx_pass2            ; 12 pass (sample 2) (SFXshotbh)
-    dc.l    handle_sfx_slapshot         ; 13 slap shot (SFXshotfh)
-    dc.l    handle_sfx_whiff            ; 14 shot whiff (SFXshotwiff)
-    dc.l    handle_sfx_playerboards1    ; 15 player hits boards 1 (SFXplayerwall)
-    dc.l    handle_sfx_playerboards2    ; 16 player hits boards 2 (SFXplayerwall2)
-    dc.l    handle_sfx_playerboards3    ; 17 player hits boards 3 (SFXplayerwall3)
-    dc.l    handle_sfx_check1           ; 18 check 1 (SFXcheck)
-    dc.l    handle_sfx_check2           ; 19 check 2 (SFXcheckb)
-    dc.l    handle_sfx_check3           ; 20 check 3 (SFXcheckc)
-    dc.l    handle_sfx_punch1           ; 21 punch 1 (SFXhithigh)
-    dc.l    handle_sfx_punch2           ; 22 punch 2 (SFXhitmid)
-    dc.l    handle_sfx_punch3           ; 23 punch 3 (SFXhitlow)
-    dc.l    handle_sfx_foghorn          ; 24 foghorn (SFXhorn)
-    dc.l    handle_sfx_crowdcheer       ; 25 crowd cheer (SFXcrowdcheer)
-    dc.l    handle_sfx_boo              ; 26 crowd boo (SFXcrowdboo)
-    dc.l    handle_sfx_hitboardquiet1   ; 27 puck hits boards, quieter 1 (SFXhitboardq1)
-    dc.l    handle_sfx_hitboardquiet2   ; 28 puck hits boards, quieter 2 (SFXhitboardq2)
-    dc.l    handle_sfx_hitboardquiet3   ; 29 puck hits boards, quieter 3 (SFXpuckwall2)
-    dc.l    handle_sfx_hitboardquiet4   ; 30 puck hits boards, quieter 4 (SFXpuckwall3)
-    dc.l    handle_sfx_oooh             ; 31 crowd oooh (SFXoooh)
-    dc.l    handle_sfx_hitboardquiet4   ; 32 unused: duplicate of 30, past the last SFX ID
-    dc.l    handle_sfx_hitboardquiet4   ; 33 unused: duplicate of 30, past the last SFX ID
-    dc.l    handle_sfx_hitboardquiet4   ; 34 unused: duplicate of 30, past the last SFX ID
+sfx_pointer_table:  ; indexed by SFX number (equates above, names from EA's soundtab.doc)
+    dc.l    handle_sfx_siren            ; siren (0)
+    dc.l    handle_sfx_skating1         ; skating1 (1)
+    dc.l    handle_sfx_skating2         ; skating2 (2)
+    dc.l    handle_sfx_skating3         ; skating3 (3)
+    dc.l    handle_sfx_skating4         ; skating4 (4)
+    dc.l    handle_sfx_hitpuck          ; hitpuck (5)
+    dc.l    handle_sfx_hitboard         ; hitboard (6)
+    dc.l    handle_sfx_hitboard2        ; hitboard2 (7)
+    dc.l    handle_sfx_puck_faceoff     ; puck_faceoff (8)
+    dc.l    handle_sfx_bounce_goal      ; bounce_goal (9)
+    dc.l    handle_sfx_whistle          ; whistle (10)
+    dc.l    handle_sfx_sam_pass1        ; sam_pass1 (11)
+    dc.l    handle_sfx_sam_pass2        ; sam_pass2 (12)
+    dc.l    handle_sfx_sam_puck2_slap   ; sam_puck2_slap (13)
+    dc.l    handle_sfx_whiff            ; whiff (14)
+    dc.l    handle_sfx_sam_hitboard1    ; sam_hitboard1 (15)
+    dc.l    handle_sfx_sam_hitboard2    ; sam_hitboard2 (16)
+    dc.l    handle_sfx_sam_hitboard3    ; sam_hitboard3 (17)
+    dc.l    handle_sfx_sam_hit1         ; sam_hit1 (18)
+    dc.l    handle_sfx_sam_hit2         ; sam_hit2 (19)
+    dc.l    handle_sfx_sam_hit3         ; sam_hit3 (20)
+    dc.l    handle_sfx_sam_punch1       ; sam_punch1 (21)
+    dc.l    handle_sfx_sam_punch2       ; sam_punch2 (22)
+    dc.l    handle_sfx_sam_punch3       ; sam_punch3 (23)
+    dc.l    handle_sfx_foghorn          ; foghorn (24)
+    dc.l    handle_sfx_sam_crowdgoal    ; sam_crowdgoal (25)
+    dc.l    handle_sfx_sam_booing       ; sam_booing (26)
+    dc.l    handle_sfx_hitboardvolm     ; hitboardvolm (27)
+    dc.l    handle_sfx_hitboardvols     ; hitboardvols (28)
+    dc.l    handle_sfx_hitboard2volm    ; hitboard2volm (29)
+    dc.l    handle_sfx_hitboard2vols    ; hitboard2vols (30)
+    dc.l    handle_sfx_oooh             ; oooh (31)
+    dc.l    handle_sfx_hitboard2vols    ; 32: unused, duplicate of hitboard2vols (30)
+    dc.l    handle_sfx_hitboard2vols    ; 33: unused, duplicate of hitboard2vols (30)
+    dc.l    handle_sfx_hitboard2vols    ; 34: unused, duplicate of hitboard2vols (30)
 
 ; Processes SFX channels, parsing commands and updating frequency/volume.
 Sound_Process_SFXChannels:
@@ -769,18 +810,18 @@ Sound_WriteYM2612:
     move.b  #1,(z80_write_pending).l ; Set pending
     rts                             ; Return
 
-; SFX 15: player hits boards 1.
-handle_sfx_playerboards1:
+; sam_hitboard1 (15): sample player hits boards 1.
+handle_sfx_sam_hitboard1:
     move.l  #$53BE,d1               ; Load data
     move.b  #$13,d2                 ; Load param
     move.b  #1,d3                   ; Load param
     bsr.s   Sound_WriteYM2612       ; Write to YM2612
-    bsr.w   handle_sfx_hitboard1         ; plus SFX 6 (puck hits boards 1)
+    bsr.w   handle_sfx_hitboard         ; plus hitboard (6)
     rts                             ; Return
 
-; SFX 3: skating 3.
-handle_sfx_skate3:
-    move.l  #sfx_skate34_pcm_ofs,d1 ; PCM sample offset
+; skating3 (3): FM skating turn short.
+handle_sfx_skating3:
+    move.l  #sfx_skating34_pcm_ofs,d1 ; PCM sample offset
     move.b  #8,d2                   ; Load param
     move.b  #1,d3                   ; Load param
     bsr.s   Sound_WriteYM2612       ; Write to YM2612
@@ -794,121 +835,121 @@ configure_ym2612:
     bsr.s   Sound_WriteYM2612       ; Write to YM2612
     rts                             ; Return
 
-; SFX 4: skating 4.
-handle_sfx_skate4:
-    move.l  #sfx_skate34_pcm_ofs,d1 ; PCM sample offset
+; skating4 (4): FM skating turn short.
+handle_sfx_skating4:
+    move.l  #sfx_skating34_pcm_ofs,d1 ; PCM sample offset
     move.b  #$B,d2                  ; Load param
     move.b  #1,d3                   ; Load param
     bsr.w   Sound_WriteYM2612       ; Write to YM2612
     rts                             ; Return
 
-; SFX 16: player hits boards 2.
-handle_sfx_playerboards2:
+; sam_hitboard2 (16): ditto at different playback rate.
+handle_sfx_sam_hitboard2:
     move.l  #$53BE,d1               ; Load data
     move.b  #$18,d2                 ; Load param
     move.b  #1,d3                   ; Load param
     bsr.w   Sound_WriteYM2612       ; Write to YM2612
-    bsr.w   handle_sfx_hitboard1         ; plus SFX 6 (puck hits boards 1)
+    bsr.w   handle_sfx_hitboard         ; plus hitboard (6)
     rts                             ; Return
 
-; SFX 17: player hits boards 3.
-handle_sfx_playerboards3:
+; sam_hitboard3 (17): ditto at different playback rate.
+handle_sfx_sam_hitboard3:
     move.l  #$53BE,d1               ; Load data
     move.b  #$10,d2                 ; Load param
     move.b  #1,d3                   ; Load param
     bsr.w   Sound_WriteYM2612       ; Write to YM2612
-    bsr.w   handle_sfx_hitboard1         ; plus SFX 6 (puck hits boards 1)
+    bsr.w   handle_sfx_hitboard         ; plus hitboard (6)
     rts                             ; Return
 
-; SFX 18: check 1.
-handle_sfx_check1:
+; sam_hit1 (18): sample player hits (checks) another player 1.
+handle_sfx_sam_hit1:
     move.l  #$62A0,d1               ; Load data
     move.b  #$10,d2                 ; Load param
     move.b  #1,d3                   ; Load param
     bsr.w   Sound_WriteYM2612       ; Write to YM2612
     rts                             ; Return
 
-; SFX 19: check 2.
-handle_sfx_check2:
+; sam_hit2 (19): ditto at different playback rate.
+handle_sfx_sam_hit2:
     move.l  #$62A0,d1               ; Load data
     move.b  #$13,d2                 ; Load param
     move.b  #1,d3                   ; Load param
     bsr.w   Sound_WriteYM2612       ; Write to YM2612
     rts                             ; Return
 
-; SFX 20: check 3.
-handle_sfx_check3:
+; sam_hit3 (20): ditto at different playback rate.
+handle_sfx_sam_hit3:
     move.l  #$62A0,d1               ; Load data
     move.b  #$18,d2                 ; Load param
     move.b  #1,d3                   ; Load param
     bsr.w   Sound_WriteYM2612       ; Write to YM2612
     rts                             ; Return
 
-; SFX 11: pass (sample 1).
-handle_sfx_pass1:
+; sam_pass1 (11): sample pass shot #1.
+handle_sfx_sam_pass1:
     move.l  #$4498,d1               ; Load data
     move.b  #$C,d2                  ; Load param
     move.b  #2,d3                   ; Load param
     bsr.w   Sound_WriteYM2612       ; Write to YM2612
     rts                             ; Return
 
-; SFX 12: pass (sample 2).
-handle_sfx_pass2:
+; sam_pass2 (12): sample pass shot #2 more beef.
+handle_sfx_sam_pass2:
     move.l  #$3590,d1               ; Load data
     move.b  #$C,d2                  ; Load param
     move.b  #2,d3                   ; Load param
     bsr.w   Sound_WriteYM2612       ; Write to YM2612
     rts                             ; Return
 
-; SFX 13: slap shot.
-handle_sfx_slapshot:
+; sam_puck2_slap (13): sample slap shot.
+handle_sfx_sam_puck2_slap:
     move.l  #$2776,d1               ; Load data
     move.b  #$B,d2                  ; Load param
     move.b  #2,d3                   ; Load param
     bsr.w   Sound_WriteYM2612       ; Write to YM2612
     rts                             ; Return
 
-; SFX 21: punch 1.
-handle_sfx_punch1:
+; sam_punch1 (21): sample fighting punch sound.
+handle_sfx_sam_punch1:
     move.l  #$73E2,d1               ; Load data
     move.b  #$15,d2                 ; Load param
     move.b  #2,d3                   ; Load param
     bsr.w   Sound_WriteYM2612       ; Write to YM2612
     rts                             ; Return
 
-; SFX 23: punch 3.
-handle_sfx_punch3:
+; sam_punch3 (23): ditto at different playback rate.
+handle_sfx_sam_punch3:
     move.l  #$73E2,d1               ; Load data
     move.b  #$1F,d2                 ; Load param
     move.b  #2,d3                   ; Load param
     bsr.w   Sound_WriteYM2612       ; Write to YM2612
     rts                             ; Return
 
-; SFX 22: punch 2.
-handle_sfx_punch2:
+; sam_punch2 (22): ditto at different playback rate.
+handle_sfx_sam_punch2:
     move.l  #$73E2,d1               ; Load data
     move.b  #$19,d2                 ; Load param
     move.b  #2,d3                   ; Load param
     bsr.w   Sound_WriteYM2612       ; Write to YM2612
     rts                             ; Return
 
-; SFX 25: crowd cheer.
-handle_sfx_crowdcheer:
+; sam_crowdgoal (25): sample crowd cheer.
+handle_sfx_sam_crowdgoal:
     move.l  #$793C,d1               ; Load data
     move.b  #$13,d2                 ; Load param
     move.b  #0,d3                   ; Load param
     bsr.w   Sound_WriteYM2612       ; Write to YM2612
     rts                             ; Return
 
-; SFX 26: crowd boo.
-handle_sfx_boo:
+; sam_booing (26): sample short booing.
+handle_sfx_sam_booing:
     move.l  #$E2BE,d1               ; Load data
     move.b  #$18,d2                 ; Load param
     move.b  #0,d3                   ; Load param
     bsr.w   Sound_WriteYM2612       ; Write to YM2612
     rts                             ; Return
 
-; SFX 31: crowd oooh.
+; oooh (31): crowd oooh (not in soundtab.doc; SFXoooh in ram.asm).
 handle_sfx_oooh:
     move.l  #sfx_oooh_pcm_ofs,d1 ; PCM sample offset
     move.b  #$1B,d2                 ; Load param
@@ -916,77 +957,77 @@ handle_sfx_oooh:
     bsr.w   Sound_WriteYM2612       ; Write to YM2612
     rts                             ; Return
 
-; SFX 8: puck faceoff / puck on ice.
-handle_sfx_puckfaceoff:
+; puck_faceoff (8): FM puck hits ice on face off.
+handle_sfx_puck_faceoff:
     move.l  #$AF0,d1                ; Load pointer
     moveq   #1,d7                   ; Channel 1
     bsr.w   Sound_InitSFXChannel    ; Init channel
     rts                             ; Return
 
-; SFX 9: puck hits post.
-handle_sfx_post:
+; bounce_goal (9): FM puck bounce off goal post.
+handle_sfx_bounce_goal:
     move.l  #$B46,d1                ; Load pointer
     moveq   #2,d7                   ; Channel 2
     bsr.w   Sound_InitSFXChannel    ; Init channel
     rts                             ; Return
 
-; SFX 5: stick hits puck.
+; hitpuck (5): FM hit puck.
 handle_sfx_hitpuck:
     move.l  #$B28,d1                ; Load pointer
     moveq   #1,d7                   ; Channel 1
     bsr.w   Sound_InitSFXChannel    ; Init channel
     rts                             ; Return
 
-; SFX 6: puck hits boards 1.
-handle_sfx_hitboard1:
+; hitboard (6): FM hit board loud.
+handle_sfx_hitboard:
     move.l  #$BDE,d1                ; Load pointer
     moveq   #2,d7                   ; Channel 2
     bsr.w   Sound_InitSFXChannel    ; Init channel
     rts                             ; Return
 
-; SFX 7: puck hits boards 2.
+; hitboard2 (7): FM hit board lower pitch loud.
 handle_sfx_hitboard2:
     move.l  #$C38,d1                ; Load pointer
     moveq   #2,d7                   ; Channel 2
     bsr.w   Sound_InitSFXChannel    ; Init channel
     rts                             ; Return
 
-; SFX 27: puck hits boards, quieter 1.
-handle_sfx_hitboardquiet1:
+; hitboardvolm (27): hit board1 medium volume.
+handle_sfx_hitboardvolm:
     move.l  #$BFC,d1                ; Load pointer
     moveq   #2,d7                   ; Channel 2
     bsr.w   Sound_InitSFXChannel    ; Init channel
     rts                             ; Return
 
-; SFX 29: puck hits boards, quieter 3.
-handle_sfx_hitboardquiet3:
+; hitboard2volm (29): hit board2 medium volume.
+handle_sfx_hitboard2volm:
     move.l  #$C56,d1                ; Load pointer
     moveq   #2,d7                   ; Channel 2
     bsr.w   Sound_InitSFXChannel    ; Init channel
     rts                             ; Return
 
-; SFX 28: puck hits boards, quieter 2.
-handle_sfx_hitboardquiet2:
+; hitboardvols (28): hit board1 softer volume.
+handle_sfx_hitboardvols:
     move.l  #$C1A,d1                ; Load pointer
     moveq   #2,d7                   ; Channel 2
     bsr.w   Sound_InitSFXChannel    ; Init channel
     rts                             ; Return
 
-; SFX 30: puck hits boards, quieter 4.
-handle_sfx_hitboardquiet4:
+; hitboard2vols (30): hit board2 softer volume.
+handle_sfx_hitboard2vols:
     move.l  #$C74,d1                ; Load pointer
     moveq   #2,d7                   ; Channel 2
     bsr.w   Sound_InitSFXChannel    ; Init channel
     rts                             ; Return
 
-; SFX 14: shot whiff.
+; whiff (14): FM whiff (miss puck on slap shot).
 handle_sfx_whiff:
     move.l  #$BC0,d1                ; Load pointer
     moveq   #1,d7                   ; Channel 1
     bsr.w   Sound_InitSFXChannel    ; Init channel
     rts                             ; Return
 
-; SFX 24: foghorn.
+; foghorn (24): FM fog horn end of period.
 handle_sfx_foghorn:
     move.l  #$B64,d1                ; Load pointer
     moveq   #0,d7                   ; Channel 0
@@ -996,28 +1037,28 @@ handle_sfx_foghorn:
     bsr.w   Sound_InitSFXChannel    ; Init channel
     rts                             ; Return
 
-; SFX 10: whistle.
+; whistle (10): FM whistle.
 handle_sfx_whistle:
     move.l  #$B00,d1                ; Load pointer
     moveq   #4,d7                   ; Channel 4
     bsr.w   Sound_InitSFXChannel    ; Init channel
     rts                             ; Return
 
-; SFX 1: skating 1.
-handle_sfx_skate1:
+; skating1 (1): FM skate and stop short.
+handle_sfx_skating1:
     move.l  #$CA2,d1                ; Load pointer
     moveq   #3,d7                   ; Channel 3
     bsr.w   Sound_InitSFXChannel    ; Init channel
     rts                             ; Return
 
-; SFX 2: skating 2.
-handle_sfx_skate2:
+; skating2 (2): FM skate and stop short.
+handle_sfx_skating2:
     move.l  #$C92,d1                ; Load pointer
     moveq   #3,d7                   ; Channel 3
     bsr.w   Sound_InitSFXChannel    ; Init channel
     rts                             ; Return
 
-; SFX 0: siren.
+; siren (0): FM siren.
 handle_sfx_siren:
     move.l  #$AAC,d1                ; Load pointer
     moveq   #0,d7                   ; Channel 0
@@ -1032,36 +1073,36 @@ sfx_siren_cmdstream_ch0 ; 0xFF74-0xFF90
     incbin ..\Extracted\Sound\sfx_siren_cmdstream_ch0.bin
 sfx_siren_cmdstream_ch1 ; 0xFF90-0xFFB8
     incbin ..\Extracted\Sound\sfx_siren_cmdstream_ch1.bin
-sfx_puckfaceoff_cmdstream ; 0xFFB8-0xFFC8
-    incbin ..\Extracted\Sound\sfx_puckfaceoff_cmdstream.bin
+sfx_puck_faceoff_cmdstream ; 0xFFB8-0xFFC8
+    incbin ..\Extracted\Sound\sfx_puck_faceoff_cmdstream.bin
 sfx_whistle_cmdstream ; 0xFFC8-0xFFF0
     incbin ..\Extracted\Sound\sfx_whistle_cmdstream.bin
 sfx_hitpuck_cmdstream ; 0xFFF0-0x1000E
     incbin ..\Extracted\Sound\sfx_hitpuck_cmdstream.bin
-sfx_post_cmdstream ; 0x1000E-0x1002C
-    incbin ..\Extracted\Sound\sfx_post_cmdstream.bin
+sfx_bounce_goal_cmdstream ; 0x1000E-0x1002C
+    incbin ..\Extracted\Sound\sfx_bounce_goal_cmdstream.bin
 sfx_foghorn_cmdstream_ch0 ; 0x1002C-0x10054
     incbin ..\Extracted\Sound\sfx_foghorn_cmdstream_ch0.bin
 sfx_foghorn_cmdstream_ch1 ; 0x10054-0x10088
     incbin ..\Extracted\Sound\sfx_foghorn_cmdstream_ch1.bin
 sfx_whiff_cmdstream ; 0x10088-0x100A6 // there is a stop at 100A0?
     incbin ..\Extracted\Sound\sfx_whiff_cmdstream.bin
-sfx_hitboard1_cmdstream ; 0x100A6-0x100C4 // also chained from SFX 15-17 (player hits boards)
-    incbin ..\Extracted\Sound\sfx_hitboard1_cmdstream.bin
-sfx_hitboardquiet1_cmdstream ; 0x100C4-0x100E2
-    incbin ..\Extracted\Sound\sfx_hitboardquiet1_cmdstream.bin
-sfx_hitboardquiet2_cmdstream ; 0x100E2-0x10100
-    incbin ..\Extracted\Sound\sfx_hitboardquiet2_cmdstream.bin
+sfx_hitboard_cmdstream ; 0x100A6-0x100C4 // also chained from SFX 15-17 (player hits boards)
+    incbin ..\Extracted\Sound\sfx_hitboard_cmdstream.bin
+sfx_hitboardvolm_cmdstream ; 0x100C4-0x100E2
+    incbin ..\Extracted\Sound\sfx_hitboardvolm_cmdstream.bin
+sfx_hitboardvols_cmdstream ; 0x100E2-0x10100
+    incbin ..\Extracted\Sound\sfx_hitboardvols_cmdstream.bin
 sfx_hitboard2_cmdstream ; 0x10100-0x1011E
     incbin ..\Extracted\Sound\sfx_hitboard2_cmdstream.bin
-sfx_hitboardquiet3_cmdstream ; 0x1011E-0x1013C
-    incbin ..\Extracted\Sound\sfx_hitboardquiet3_cmdstream.bin
-sfx_hitboardquiet4_cmdstream ; 0x1013C-0x1015A
-    incbin ..\Extracted\Sound\sfx_hitboardquiet4_cmdstream.bin
-sfx_skate2_cmdstream ; 0x1015A-0x1016A
-    incbin ..\Extracted\Sound\sfx_skate2_cmdstream.bin
-sfx_skate1_cmdstream ; 0x1016A-0x1017A
-    incbin ..\Extracted\Sound\sfx_skate1_cmdstream.bin
+sfx_hitboard2volm_cmdstream ; 0x1011E-0x1013C
+    incbin ..\Extracted\Sound\sfx_hitboard2volm_cmdstream.bin
+sfx_hitboard2vols_cmdstream ; 0x1013C-0x1015A
+    incbin ..\Extracted\Sound\sfx_hitboard2vols_cmdstream.bin
+sfx_skating2_cmdstream ; 0x1015A-0x1016A
+    incbin ..\Extracted\Sound\sfx_skating2_cmdstream.bin
+sfx_skating1_cmdstream ; 0x1016A-0x1017A
+    incbin ..\Extracted\Sound\sfx_skating1_cmdstream.bin
 
 note_frequency_table: ;0x1017A-0x101D9
     dcb.b 4,2
@@ -1127,128 +1168,128 @@ envelope3:  ; linear downward ramp starting at neutral and progressively detunin
 
 fmtune_pointer_table: ;0x10294-0x10315 | Bytes 0-1 = Num Tracks-1, Bytes 2-3: Tempo
 	dc.w $0507
-	dc.l fmtune_song0_ch0 - p_music_vblank
-	dc.l fmtune_song0_ch1 - p_music_vblank
-	dc.l fmtune_song0_ch2 - p_music_vblank
-	dc.l fmtune_song0_ch3 - p_music_vblank
-	dc.l fmtune_song0_ch4 - p_music_vblank
-	dc.l fmtune_song0_ch5 - p_music_vblank	; SngEOP
+	dc.l fmtune_endofperiod_ch0 - p_music_vblank
+	dc.l fmtune_endofperiod_ch1 - p_music_vblank
+	dc.l fmtune_endofperiod_ch2 - p_music_vblank
+	dc.l fmtune_endofperiod_ch3 - p_music_vblank
+	dc.l fmtune_endofperiod_ch4 - p_music_vblank
+	dc.l fmtune_endofperiod_ch5 - p_music_vblank	; endofperiod (0)
 
 	dc.w $0506
-	dc.l fmtune_song1_ch0 - p_music_vblank
-	dc.l fmtune_song1_ch1 - p_music_vblank
-	dc.l fmtune_song1_ch2 - p_music_vblank
-	dc.l fmtune_song1_ch3 - p_music_vblank
-	dc.l fmtune_song1_ch4 - p_music_vblank
-	dc.l fmtune_song1_ch5 - p_music_vblank	; SngTitle
+	dc.l fmtune_splash_ch0 - p_music_vblank
+	dc.l fmtune_splash_ch1 - p_music_vblank
+	dc.l fmtune_splash_ch2 - p_music_vblank
+	dc.l fmtune_splash_ch3 - p_music_vblank
+	dc.l fmtune_splash_ch4 - p_music_vblank
+	dc.l fmtune_splash_ch5 - p_music_vblank	; splash (1)
 
 	dc.w $0506
-	dc.l fmtune_song2_ch0 - p_music_vblank
-	dc.l fmtune_song2_ch1 - p_music_vblank
-	dc.l fmtune_song2_ch2 - p_music_vblank
-	dc.l fmtune_song2_ch3 - p_music_vblank
-	dc.l fmtune_song2_ch4 - p_music_vblank
-	dc.l fmtune_song2_ch5 - p_music_vblank	; SngTitle Reprise
+	dc.l fmtune_unused_ch0 - p_music_vblank
+	dc.l fmtune_unused_ch1 - p_music_vblank
+	dc.l fmtune_unused_ch2 - p_music_vblank
+	dc.l fmtune_unused_ch3 - p_music_vblank
+	dc.l fmtune_unused_ch4 - p_music_vblank
+	dc.l fmtune_unused_ch5 - p_music_vblank	; unused (2): reserved in soundtab.doc, the data is a Title reprise
 
 	dc.w $0506
-	dc.l fmtune_song3_ch0 - p_music_vblank
-	dc.l fmtune_song3_ch1 - p_music_vblank
-	dc.l fmtune_song3_ch2 - p_music_vblank
-	dc.l fmtune_song3_ch3 - p_music_vblank
-	dc.l fmtune_song3_ch4 - p_music_vblank
-	dc.l fmtune_song3_ch5 - p_music_vblank	; SngEOG
+	dc.l fmtune_endofgame_ch0 - p_music_vblank
+	dc.l fmtune_endofgame_ch1 - p_music_vblank
+	dc.l fmtune_endofgame_ch2 - p_music_vblank
+	dc.l fmtune_endofgame_ch3 - p_music_vblank
+	dc.l fmtune_endofgame_ch4 - p_music_vblank
+	dc.l fmtune_endofgame_ch5 - p_music_vblank	; endofgame (3)
 
 	dc.w $0507
-	dc.l fmtune_song4_ch0 - p_music_vblank
-	dc.l fmtune_song4_ch1 - p_music_vblank
-	dc.l fmtune_song4_ch2 - p_music_vblank
-	dc.l fmtune_song4_ch3 - p_music_vblank
-	dc.l fmtune_song4_ch4 - p_music_vblank
-	dc.l fmtune_song4_ch5 - p_music_vblank	; SngPO
+	dc.l fmtune_playofftree_ch0 - p_music_vblank
+	dc.l fmtune_playofftree_ch1 - p_music_vblank
+	dc.l fmtune_playofftree_ch2 - p_music_vblank
+	dc.l fmtune_playofftree_ch3 - p_music_vblank
+	dc.l fmtune_playofftree_ch4 - p_music_vblank
+	dc.l fmtune_playofftree_ch5 - p_music_vblank	; playofftree (4)
 
-fmtune_song4_ch0: ; 0x10316-0x1031F
+fmtune_playofftree_ch0: ; 0x10316-0x1031F
     dc.w $11A3, $0002, $0003, $1A41, $0000
 
-fmtune_song4_ch1: ; 0x10320-0x1032D
+fmtune_playofftree_ch1: ; 0x10320-0x1032D
     dc.w $118B, $11C7, $0002, $0003, $116D, $1CA5, $0000
 
-fmtune_song4_ch2: ; 0x1032E-0x1033B
+fmtune_playofftree_ch2: ; 0x1032E-0x1033B
     dc.w $118B, $11F0, $0002, $0003, $116D, $1D00, $0000
 
-fmtune_song4_ch3: ; 0x1033C-0x1034B
+fmtune_playofftree_ch3: ; 0x1033C-0x1034B
     dc.w $116D, $1219, $1275, $118E, $1219, $1275, $12DE, $0000
 
-fmtune_song4_ch4: ; 0x1034C-0x1035B
+fmtune_playofftree_ch4: ; 0x1034C-0x1035B
     dc.w $116D, $1247, $12A8, $118E, $1247, $12A8, $133F, $0000
 
-fmtune_song4_ch5: ; 0x1035C-0x1035F
+fmtune_playofftree_ch5: ; 0x1035C-0x1035F
     dc.w $1C35, $0000
 
-fmtune_song3_ch0: ; 0x10360-0x10367
+fmtune_endofgame_ch0: ; 0x10360-0x10367
     dc.w $1A41, $0002, $0003, $0000
 
-fmtune_song3_ch1: ; 0x10368-0x10371
+fmtune_endofgame_ch1: ; 0x10368-0x10371
     dc.w $116D, $1CA5, $0002, $0003, $0000
 
-fmtune_song3_ch3: ; 0x10372-0x1037B
+fmtune_endofgame_ch3: ; 0x10372-0x1037B
     dc.w $116D, $1D00, $0002, $0003, $0000
 
-fmtune_song3_ch2: ; 0x1037C-0x103A9
+fmtune_endofgame_ch2: ; 0x1037C-0x103A9
     dc.w $116D, $13A0, $118E, $13A0, $1547, $1547, $13D5, $140E
     dc.w $0002, $0003, $13D5, $116D, $141E, $118E, $13EF, $141E
     dc.w $13EF, $116D, $18D5, $18D5, $1649, $1649, $0000
 
-fmtune_song3_ch4: ; 0x103AA-0x103DD
+fmtune_endofgame_ch4: ; 0x103AA-0x103DD
     dc.w $118E, $14CD, $14CD, $156C, $156C, $1502, $119A, $1537
     dc.w $0002, $0003, $118E, $1502, $118E, $1477, $118E, $1518
     dc.w $118E, $1477, $119A, $1518, $116D, $198B, $198B, $1855
     dc.w $1855, $0000
 
-fmtune_song3_ch5: ; 0x103DE-0x1040D
+fmtune_endofgame_ch5: ; 0x103DE-0x1040D
     dc.w $1C35, $0002, $0006, $1D98, $1C35, $1C4E, $1C35, $1C35
     dc.w $1C35, $1C4E, $1C35, $1D98, $1C35, $0002, $0005, $1C65
     dc.w $1C35, $1C4E, $1C8D, $1C35, $1C8D, $1D98, $1C65, $0000
 
-fmtune_song1_ch0: ; 0x1040E-0x10425
+fmtune_splash_ch0: ; 0x1040E-0x10425
     dc.w $118B, $1ED6, $1EF0, $1A87, $1ACB, $1A87, $1A41
     dc.w $0002, $0005, $1591, $0001, $0002
 
-fmtune_song2_ch0: ; 0x10426-0x1042D
+fmtune_unused_ch0: ; 0x10426-0x1042D
     dc.w $1A41, $0002, $0003, $0000
 
-fmtune_song1_ch1: ; 0x1042E-0x10445
+fmtune_splash_ch1: ; 0x1042E-0x10445
     dc.w $116D, $1EE3, $1EE3, $1BF1, $1CA5, $1BF1, $116D, $1CA5
     dc.w $0002, $0005, $116D, $160A
 
-fmtune_song2_ch1: ; 0x10446-0x1044D
+fmtune_unused_ch1: ; 0x10446-0x1044D
     dc.w $1CA5, $0002, $0003, $0000
 
-fmtune_song1_ch3: ; 0x1044E-0x10467
+fmtune_splash_ch3: ; 0x1044E-0x10467
     dc.w $118B, $1EE3, $1EE3, $116D, $1BAD, $1D00, $1BAD, $116D
     dc.w $1D00, $0002, $0005, $118B, $160A
 
-fmtune_song2_ch3: ; 0x10468-0x10471
+fmtune_unused_ch3: ; 0x10468-0x10471
     dc.w $116D, $1D00, $0002, $0003, $0000
 
-fmtune_song1_ch2: ; 0x10472-0x10497
+fmtune_splash_ch2: ; 0x10472-0x10497
     dc.w $118E, $1F42, $1F42, $116D, $1B1D, $118B, $1649, $118E
     dc.w $1B1D, $118B, $1649, $116D, $1649, $1649, $1649, $16BD
     dc.w $16BD, $116D, $15B0
 
-fmtune_song2_ch2: ; 0x10498-0x104A3
+fmtune_unused_ch2: ; 0x10498-0x104A3
     dc.w $116D, $18D5, $18D5, $1649, $1649
     dc.w $0000
 
-fmtune_song1_ch4: ; 0x104A4-0x104C5
+fmtune_splash_ch4: ; 0x104A4-0x104C5
     dc.w $11A0, $1F42, $1F42, $116D, $1156, $1156, $1B6A
     dc.w $116D, $17EF, $116D, $17EF, $17EF, $1855, $1756, $1756
     dc.w $116D, $15DE
     
 
-fmtune_song2_ch4: ; 0x104C6-0x104D1
+fmtune_unused_ch4: ; 0x104C6-0x104D1
     dc.w $116D, $198B, $198B, $1855, $1855, $0000
 
-fmtune_song1_ch5: ; 0x104D2-0x10537
+fmtune_splash_ch5: ; 0x104D2-0x10537
     dc.w $1DC4, $0002, $0006, $1DD2
     dc.w $1B0D, $0002, $0007, $1B0D, $0002, $0006
     dc.w $1D98, $1B0D, $0002, $0006, $1D98, $1B0D, $0002, $0006
@@ -1258,36 +1299,36 @@ fmtune_song1_ch5: ; 0x104D2-0x10537
     dc.w $1C65, $1C35, $1C4E, $1C8D, $1C35, $1C8D, $1D98, $1C65
     dc.w $1624
 
-fmtune_song2_ch5: ; 0x10538-0x10567
+fmtune_unused_ch5: ; 0x10538-0x10567
     dc.w $1C35, $0002, $0006
     dc.w $1D98, $1C35, $1C4E, $1C35, $1C35, $1C35, $1C4E, $1C35
     dc.w $1D98, $1C35, $0002, $0005, $1C65, $1C35, $1C4E, $1C8D
     dc.w $1C35, $1C8D, $1D98, $1C65, $0000
 
-fmtune_song0_ch0: ; 0x10568-0x1057F
+fmtune_endofperiod_ch0: ; 0x10568-0x1057F
     dc.w $1ED6, $1EF0, $1D5B, $1D5B, $1D5B, $1D5B, $1D5B, $1D5B
     dc.w $1D5B, $1D5B, $1F83, $0000
 
-fmtune_song0_ch1: ; 0x10580-0x1059B
+fmtune_endofperiod_ch1: ; 0x10580-0x1059B
     dc.w $116D, $1EE3, $1EE3, $118B, $1DE7, $1DE7, $1DE7, $1DE7, $1DE7, $1DE7, $1DE7
     dc.w $1DE7, $1FC9, $0000
     
 
-fmtune_song0_ch3: ; 0x1059C-0x105B5
+fmtune_endofperiod_ch3: ; 0x1059C-0x105B5
     dc.w $118B, $1EE3, $1EE3, $1DFA, $1DFA
     dc.w $1DFA, $1DFA, $1DFA, $1DFA, $1DFA, $1DFA, $200C, $0000
 
-fmtune_song0_ch2: ; 0x105B6-0x105C9
+fmtune_endofperiod_ch2: ; 0x105B6-0x105C9
     dc.w $118E, $1F42
     dc.w $119A, $1F42, $116D, $1E0D
     dc.w $1E0D, $116D, $204F, $0000
     
-fmtune_song0_ch4: ; 0x105CA-0x105DF
+fmtune_endofperiod_ch4: ; 0x105CA-0x105DF
     dc.w $11A0, $1F42, $119D, $1F42, $116D, $1E73, $118E, $1E73, $116D, $20D5, $0000
 
     
 
-fmtune_song0_ch5: ; 0x105E0-0x11624
+fmtune_endofperiod_ch5: ; 0x105E0-0x11624
     dc.w $1DC4, $0002, $0006, $1DD2
     dc.w $1D6D, $0002, $0007
     dc.w $1D6D, $1D6D, $1D6D, $1DA9, $1D6D, $1D6D, $1D6D, $1DA9
@@ -1966,34 +2007,34 @@ Sound_LoadZ80Program:
 
 Z80_Program_Code
     incbin ..\Extracted\Sound\z80_snd_drv.bin
-; { name: 'sfx_slapshot_pcm.bin', folder: 'Sound', start: 0x11C3E, end: 0x12A58 },
-sfx_slapshot_pcm
-    incbin ..\Extracted\Sound\sfx_slapshot_pcm.bin
-; { name: 'sfx_pass2_pcm.bin', folder: 'Sound', start: 0x12A58, end: 0x13960 },
-sfx_pass2_pcm
-    incbin ..\Extracted\Sound\sfx_pass2_pcm.bin
-; { name: 'sfx_pass1_pcm.bin', folder: 'Sound', start: 0x13960, end: 0x14886 },
-sfx_pass1_pcm
-    incbin ..\Extracted\Sound\sfx_pass1_pcm.bin
-; { name: 'sfx_playerboards_pcm.bin', folder: 'Sound', start: 0x14886, end: 0x15768 }, // SFX 15-17 (player hits boards)
-sfx_playerboards_pcm
-    incbin ..\Extracted\Sound\sfx_playerboards_pcm.bin
-; { name: 'sfx_check_pcm.bin', folder: 'Sound', start: 0x15768, end: 0x168AA }, // SFX 18-20 (checks)
-sfx_check_pcm
-    incbin ..\Extracted\Sound\sfx_check_pcm.bin
-; { name: 'sfx_punch_pcm.bin', folder: 'Sound', start: 0x168AA, end: 0x16E04 }, // offset in code is 168B0; SFX 21-23 (punches)
-sfx_punch_pcm
-    incbin ..\Extracted\Sound\sfx_punch_pcm.bin
-; { name: 'sfx_crowdcheer_pcm.bin', folder: 'Sound', start: 0x16E04, end: 0x1D786 },
-sfx_crowdcheer_pcm
-    incbin ..\Extracted\Sound\sfx_crowdcheer_pcm.bin
-; { name: 'sfx_boo_pcm.bin', folder: 'Sound', start: 0x1D786, end: 0x1FCE8 },
-sfx_boo_pcm
-    incbin ..\Extracted\Sound\sfx_boo_pcm.bin
-; { name: 'sfx_oooh_pcm.bin', folder: 'Sound', start: 0x1FCE8, end: 0x222AA }, // SFX 31 (oooh), offset in code is 1FD88
+; { name: 'sfx_sam_puck2_slap_pcm.bin', folder: 'Sound', start: 0x11C3E, end: 0x12A58 },
+sfx_sam_puck2_slap_pcm
+    incbin ..\Extracted\Sound\sfx_sam_puck2_slap_pcm.bin
+; { name: 'sfx_sam_pass2_pcm.bin', folder: 'Sound', start: 0x12A58, end: 0x13960 },
+sfx_sam_pass2_pcm
+    incbin ..\Extracted\Sound\sfx_sam_pass2_pcm.bin
+; { name: 'sfx_sam_pass1_pcm.bin', folder: 'Sound', start: 0x13960, end: 0x14886 },
+sfx_sam_pass1_pcm
+    incbin ..\Extracted\Sound\sfx_sam_pass1_pcm.bin
+; { name: 'sfx_sam_hitboard_pcm.bin', folder: 'Sound', start: 0x14886, end: 0x15768 }, // sam_hitboard1-3 (15-17)
+sfx_sam_hitboard_pcm
+    incbin ..\Extracted\Sound\sfx_sam_hitboard_pcm.bin
+; { name: 'sfx_sam_hit_pcm.bin', folder: 'Sound', start: 0x15768, end: 0x168AA }, // sam_hit1-3 (18-20)
+sfx_sam_hit_pcm
+    incbin ..\Extracted\Sound\sfx_sam_hit_pcm.bin
+; { name: 'sfx_sam_punch_pcm.bin', folder: 'Sound', start: 0x168AA, end: 0x16E04 }, // offset in code is 168B0; sam_punch1-3 (21-23)
+sfx_sam_punch_pcm
+    incbin ..\Extracted\Sound\sfx_sam_punch_pcm.bin
+; { name: 'sfx_sam_crowdgoal_pcm.bin', folder: 'Sound', start: 0x16E04, end: 0x1D786 },
+sfx_sam_crowdgoal_pcm
+    incbin ..\Extracted\Sound\sfx_sam_crowdgoal_pcm.bin
+; { name: 'sfx_sam_booing_pcm.bin', folder: 'Sound', start: 0x1D786, end: 0x1FCE8 },
+sfx_sam_booing_pcm
+    incbin ..\Extracted\Sound\sfx_sam_booing_pcm.bin
+; { name: 'sfx_oooh_pcm.bin', folder: 'Sound', start: 0x1FCE8, end: 0x222AA }, // oooh (31), offset in code is 1FD88
 sfx_oooh_pcm
     incbin ..\Extracted\Sound\sfx_oooh_pcm.bin
 ; // is there a break at 0x1FFA3?
-; { name: 'sfx_skate34_pcm.bin', folder: 'Sound', start: 0x222AA, end: 0x00024214 }, // SFX 3-4 (skating 3 and 4)
-sfx_skate34_pcm
-    incbin ..\Extracted\Sound\sfx_skate34_pcm.bin
+; { name: 'sfx_skating34_pcm.bin', folder: 'Sound', start: 0x222AA, end: 0x00024214 }, // skating3-4 (3-4)
+sfx_skating34_pcm
+    incbin ..\Extracted\Sound\sfx_skating34_pcm.bin

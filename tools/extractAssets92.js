@@ -64,21 +64,21 @@ const assets = [
     // snd 68k code 2 (including sfx handlers): FB1E - FF72
     { name: 'sfx_siren_cmdstream_ch0.bin', folder: 'Sound', start: 0xFF74, end: 0xFF90 },
     { name: 'sfx_siren_cmdstream_ch1.bin', folder: 'Sound', start: 0xFF90, end: 0xFFB8 },
-    { name: 'sfx_puckfaceoff_cmdstream.bin', folder: 'Sound', start: 0xFFB8, end: 0xFFC8 },
+    { name: 'sfx_puck_faceoff_cmdstream.bin', folder: 'Sound', start: 0xFFB8, end: 0xFFC8 },
     { name: 'sfx_whistle_cmdstream.bin', folder: 'Sound', start: 0xFFC8, end: 0xFFF0 },
     { name: 'sfx_hitpuck_cmdstream.bin', folder: 'Sound', start: 0xFFF0, end: 0x1000E },
-    { name: 'sfx_post_cmdstream.bin', folder: 'Sound', start: 0x1000E, end: 0x1002C },
+    { name: 'sfx_bounce_goal_cmdstream.bin', folder: 'Sound', start: 0x1000E, end: 0x1002C },
     { name: 'sfx_foghorn_cmdstream_ch0.bin', folder: 'Sound', start: 0x1002C, end: 0x10054 },
     { name: 'sfx_foghorn_cmdstream_ch1.bin', folder: 'Sound', start: 0x10054, end: 0x10088 },
     { name: 'sfx_whiff_cmdstream.bin', folder: 'Sound', start: 0x10088, end: 0x100A6 }, // there is a stop at 100A0?
-    { name: 'sfx_hitboard1_cmdstream.bin', folder: 'Sound', start: 0x100A6, end: 0x100C4 }, // also chained from SFX 15-17 (player hits boards)
-    { name: 'sfx_hitboardquiet1_cmdstream.bin', folder: 'Sound', start: 0x100C4, end: 0x100E2 },
-    { name: 'sfx_hitboardquiet2_cmdstream.bin', folder: 'Sound', start: 0x100E2, end: 0x10100 },
+    { name: 'sfx_hitboard_cmdstream.bin', folder: 'Sound', start: 0x100A6, end: 0x100C4 }, // also chained from sam_hitboard1-3 (15-17)
+    { name: 'sfx_hitboardvolm_cmdstream.bin', folder: 'Sound', start: 0x100C4, end: 0x100E2 },
+    { name: 'sfx_hitboardvols_cmdstream.bin', folder: 'Sound', start: 0x100E2, end: 0x10100 },
     { name: 'sfx_hitboard2_cmdstream.bin', folder: 'Sound', start: 0x10100, end: 0x1011E },
-    { name: 'sfx_hitboardquiet3_cmdstream.bin', folder: 'Sound', start: 0x1011E, end: 0x1013C },
-    { name: 'sfx_hitboardquiet4_cmdstream.bin', folder: 'Sound', start: 0x1013C, end: 0x1015A },
-    { name: 'sfx_skate2_cmdstream.bin', folder: 'Sound', start: 0x1015A, end: 0x1016A },
-    { name: 'sfx_skate1_cmdstream.bin', folder: 'Sound', start: 0x1016A, end: 0x1017A },
+    { name: 'sfx_hitboard2volm_cmdstream.bin', folder: 'Sound', start: 0x1011E, end: 0x1013C },
+    { name: 'sfx_hitboard2vols_cmdstream.bin', folder: 'Sound', start: 0x1013C, end: 0x1015A },
+    { name: 'sfx_skating2_cmdstream.bin', folder: 'Sound', start: 0x1015A, end: 0x1016A },
+    { name: 'sfx_skating1_cmdstream.bin', folder: 'Sound', start: 0x1016A, end: 0x1017A },
     { name: 'note_freqeuency_table.bin', folder: 'Sound', start: 0x1017A, end: 0x101DA },
     { name: 'note_octave_table.bin', folder: 'Sound', start: 0x101DA, end: 0x1023A },
     { name: 'envelope_table.bin', folder: 'Sound', start: 0x1023A, end: 0x10294 },
@@ -87,17 +87,17 @@ const assets = [
     { name: 'fmtune_sequence_data.bin', folder: 'Sound', start: 0x1061E, end: 0x11624 },
     // code segment 3 0x11624 - 0x116A6
     { name: 'z80_snd_drv.bin', folder: 'Sound', start: 0x116A6, end: 0x11C3E },
-    { name: 'sfx_slapshot_pcm.bin', folder: 'Sound', start: 0x11C3E, end: 0x12A58 },
-    { name: 'sfx_pass2_pcm.bin', folder: 'Sound', start: 0x12A58, end: 0x13960 },
-    { name: 'sfx_pass1_pcm.bin', folder: 'Sound', start: 0x13960, end: 0x14886 },
-    { name: 'sfx_playerboards_pcm.bin', folder: 'Sound', start: 0x14886, end: 0x15768 }, // SFX 15-17 (player hits boards)
-    { name: 'sfx_check_pcm.bin', folder: 'Sound', start: 0x15768, end: 0x168AA }, // SFX 18-20 (checks)
-    { name: 'sfx_punch_pcm.bin', folder: 'Sound', start: 0x168AA, end: 0x16E04 }, // offset in code is 168B0; SFX 21-23 (punches)
-    { name: 'sfx_crowdcheer_pcm.bin', folder: 'Sound', start: 0x16E04, end: 0x1D786 },
-    { name: 'sfx_boo_pcm.bin', folder: 'Sound', start: 0x1D786, end: 0x1FCE8 },
-    { name: 'sfx_oooh_pcm.bin', folder: 'Sound', start: 0x1FCE8, end: 0x222AA }, // SFX 31 (oooh), offset in code is 1FD88
+    { name: 'sfx_sam_puck2_slap_pcm.bin', folder: 'Sound', start: 0x11C3E, end: 0x12A58 },
+    { name: 'sfx_sam_pass2_pcm.bin', folder: 'Sound', start: 0x12A58, end: 0x13960 },
+    { name: 'sfx_sam_pass1_pcm.bin', folder: 'Sound', start: 0x13960, end: 0x14886 },
+    { name: 'sfx_sam_hitboard_pcm.bin', folder: 'Sound', start: 0x14886, end: 0x15768 }, // sam_hitboard1-3 (15-17)
+    { name: 'sfx_sam_hit_pcm.bin', folder: 'Sound', start: 0x15768, end: 0x168AA }, // sam_hit1-3 (18-20)
+    { name: 'sfx_sam_punch_pcm.bin', folder: 'Sound', start: 0x168AA, end: 0x16E04 }, // offset in code is 168B0; sam_punch1-3 (21-23)
+    { name: 'sfx_sam_crowdgoal_pcm.bin', folder: 'Sound', start: 0x16E04, end: 0x1D786 },
+    { name: 'sfx_sam_booing_pcm.bin', folder: 'Sound', start: 0x1D786, end: 0x1FCE8 },
+    { name: 'sfx_oooh_pcm.bin', folder: 'Sound', start: 0x1FCE8, end: 0x222AA }, // oooh (31), offset in code is 1FD88
     // is there a break at 0x1FFA3?
-    { name: 'sfx_skate34_pcm.bin', folder: 'Sound', start: 0x222AA, end: 0x00024214 }, // SFX 3-4 (skating 3 and 4)
+    { name: 'sfx_skating34_pcm.bin', folder: 'Sound', start: 0x222AA, end: 0x00024214 }, // skating3-4 (3-4)
     
 
     { name: 'GameSetUp.map.jim', folder: 'Graphics', start: 0x00024214, end: 0x00025642 },

@@ -173,9 +173,9 @@ NHL 92 uses a hybrid sound system: The 68000 CPU handles high-level music/SFX lo
 
 - **Music Tracks**: 5 tracks (e.g., Title, EOP). Pointers in `fmtune_pointer_table` (num channels, tempo, channel data offsets). Sequences (`fmtune_seq0` etc.) use commands like $84 (loop), $88 (pitch adjust).
 
-- **SFX**: 35 entries in `sfx_pointer_table`. Handlers (e.g., `handle_sfx_slapshot`) init channels and point to command streams (.bin files). Commands: $80 (instrument), $81 (delay), $83 (frequency sweep), $84 (stop), $85 (loop). Some SFX share streams/PCM (e.g., the player hits boards SFX 15-17 also start `handle_sfx_hitboard1`).
+- **SFX**: 35 entries in `sfx_pointer_table`. Handlers (e.g., `handle_sfx_sam_puck2_slap`) init channels and point to command streams (.bin files). Commands: $80 (instrument), $81 (delay), $83 (frequency sweep), $84 (stop), $85 (loop). Some SFX share streams/PCM (e.g., the player hits boards SFX 15-17 also start `handle_sfx_hitboard`).
 
-- **PCM Samples**: Extracted .bin files (e.g., `sfx_slapshot_pcm.bin` at $11C3E). Streamed via DAC (YM2612 reg $2A). Signed 8-bit, ~8kHz. Used for hits, checks, crowd. 
+- **PCM Samples**: Extracted .bin files (e.g., `sfx_sam_puck2_slap_pcm.bin` at $11C3E). Streamed via DAC (YM2612 reg $2A). Signed 8-bit, ~8kHz. Used for hits, checks, crowd. 
 
 - **FM Instruments**: 25+ patches starting at $11C3E in ROM (loaded to Z80 RAM offset $2A5). 32 bytes each: Operator params (multiplier, detune, total level, rate scaling, attack/decay/sustain/release), algorithm/feedback ($B0), stereo ($B4). Examples: Bass ($20,$62,...), Whistle ($43,0,...).
 
@@ -196,19 +196,19 @@ Documentation for the NHL92 .ANIM file format and tool to export from .ANIM form
 
 ## SFX:
 ### SFX pointer table
-Pointer table at $1035C (35 entries, longwords relative to `p_music_vblank`). Maps SFX IDs (0-34) to handlers (e.g., $0 = `handle_sfx_siren`). IDs 0-31 are the SFX in EA's list (the `SFX...` equates in `src/ram.asm`); IDs 32-34 are unused duplicates of ID 30 (`handle_sfx_hitboardquiet4`). ID 31 (`handle_sfx_oooh`) has its own handler.
+Pointer table at $1035C (35 entries, longwords relative to `p_music_vblank`). Maps SFX IDs (0-34) to handlers (e.g., $0 = `handle_sfx_siren`). IDs 0-31 are the SFX in EA's list (the `SFX...` equates in `src/ram.asm`); IDs 32-34 are unused duplicates of ID 30 (`handle_sfx_hitboard2vols`). ID 31 (`handle_sfx_oooh`) has its own handler.
 
 ### SFX handler
-Handlers (e.g., `handle_sfx_slapshot`) load YM2612 params or init channels via `Sound_InitSFXChannel`. Many write direct to YM2612 (e.g., `Sound_WriteYM2612`) for freq/volume, or chain to others (e.g., `handle_sfx_playerboards1` chains to `handle_sfx_hitboard1`).
+Handlers (e.g., `handle_sfx_sam_puck2_slap`) load YM2612 params or init channels via `Sound_InitSFXChannel`. Many write direct to YM2612 (e.g., `Sound_WriteYM2612`) for freq/volume, or chain to others (e.g., `handle_sfx_sam_hitboard1` chains to `handle_sfx_hitboard`).
 
 ### SFX cmdstream
 Extracted .bin files (e.g., `sfx_siren_cmdstream_ch0.bin` at $FF74). Byte streams parsed in `Sound_Process_SFXChannels`: $80 (set instrument), $81/$82 (delay/alt delay), $83 (freq sweep: counter, base freq, increment), $84 (stop), $85 (loop). Frequency normalized to YM2612 range ($000-$7FF).
 
 ### SFX PCM
-Extracted signed 8-bit PCM .bin files (e.g., `sfx_slapshot_pcm.bin` 0x11C3E-0x12A58). Streamed via DAC. Some are shared by several SFX (e.g., `sfx_check_pcm` for checks 18-20). Sample rates ~8-11kHz based on counters.
+Extracted signed 8-bit PCM .bin files (e.g., `sfx_sam_puck2_slap_pcm.bin` 0x11C3E-0x12A58). Streamed via DAC. Some are shared by several SFX (e.g., `sfx_sam_hit_pcm` for checks 18-20). Sample rates ~8-11kHz based on counters.
 
 ### Instrument patches
-Loaded via $80 command. Params: 4 operators (mul/dt/tl/rs/ar/dr/sr/rr/ssg-eg), alg/fb, stereo. 25+ defined. Some handlers pass a PCM sample offset as a constant (`sfx_skate34_pcm_ofs` = $12DE2, `sfx_oooh_pcm_ofs` = $10820; formerly named `fm_instrument_patch_sfx_id_3` / `_31`).
+Loaded via $80 command. Params: 4 operators (mul/dt/tl/rs/ar/dr/sr/rr/ssg-eg), alg/fb, stereo. 25+ defined. Some handlers pass a PCM sample offset as a constant (`sfx_skating34_pcm_ofs` = $12DE2, `sfx_oooh_pcm_ofs` = $10820; formerly named `fm_instrument_patch_sfx_id_3` / `_31`).
 
 ## Note Frequency Table
 At $1017A (96 bytes): YM2612 freq low bytes for notes (C0-B7, incl. sharps). E.g., C0=$02, C#0=$03. Used in `process_note_frequency` with octave shifts.
@@ -224,7 +224,7 @@ At $1023A (4 long ptrs to envelopes). Signed vibrato/detune patterns ($00 neutra
 At $10294 (5 entries, 26 bytes each): Num FM/PSG channels (word), 6 long ptrs to channel data (rel to `p_music_vblank`). E.g., Title ($0506, ch0-5 ptrs).
 
 ### fmtune channel table
-Channel offsets (e.g., `fmtune_song0_ch0` at $10568): Words pointing to sequences (e.g., $11A3 = seq0). Up to 6 channels per track.
+Channel offsets (e.g., `fmtune_endofperiod_ch0` at $10568): Words pointing to sequences (e.g., $11A3 = seq0). Up to 6 channels per track.
 
 ### fmtune sequence table
 Sequences (`fmtune_seq0` at $1061E+): Byte streams for notes/rests ($00-$5F note/rest, $60 rest), commands ($80+ as in SFX but music-specific: $80 instr, $81 mod, $83 sustain, $84 loop, $85 stop, $86 env, $87 clear env, $88 pitch, $89 flag, $8A skip, $8B SFX). Durations $8C-$9F (multiplied by tempo).
