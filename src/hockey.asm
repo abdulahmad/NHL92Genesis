@@ -5707,7 +5707,7 @@ EASNmap
 	even
 	IF CHECKSUM=1 ; Security Code used during Mastering of Retail Cartridge
 		include checksum.asm
-		dcb.b   $80000-*,$FF	; fill to the 512 KB cartridge size (retail $124 bytes, Rev A $108)
+		dcb.b   $80000-*,$FF
 	ENDIF
 endofcart
    	end
