@@ -55,7 +55,7 @@ At $1023A (4 long ptrs to envelopes). Signed vibrato/detune patterns ($00 neutra
 At $10294 (5 entries, 26 bytes each): Num FM/PSG channels (word), 6 long ptrs to channel data (rel to `p_music_vblank`). E.g., Title ($0506, ch0-5 ptrs).
 
 ### fmtune channel table
-Channel offsets (e.g., `fmtune_endofperiod_ch0` at $10568): Words pointing to sequences (e.g., $11A3 = seq0). Up to 6 channels per track.
+Channel offsets (e.g., `fmtune_eop_ch0` at $10568): Words pointing to sequences (e.g., $11A3 = seq0). Up to 6 channels per track.
 
 ### fmtune sequence table
 Sequences (`fmtune_seq0` at $1061E+): Byte streams for notes/rests ($00-$5F note/rest, $60 rest), commands ($80+ as in SFX but music-specific: $80 instr, $81 mod, $83 sustain, $84 loop, $85 stop, $86 env, $87 clear env, $88 pitch, $89 flag, $8A skip, $8B SFX). Durations $8C-$9F (multiplied by tempo).

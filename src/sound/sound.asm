@@ -7,8 +7,9 @@
 sfx_skating34_pcm_ofs = $12DE2 ; Hockey.snd offset of sfx_skating34_pcm (ROM $222AA - $F4C8), like the other PCM offsets passed to Sound_WriteYM2612; was fm_instrument_patch_sfx_id_3
 sfx_oooh_pcm_ofs = $10820 ; Hockey.snd offset of sfx_oooh_pcm (ROM $1FCE8 - $F4C8); was fm_instrument_patch_sfx_id_31
 
-; Sound effect and music numbers, named as in EA's sound list (docs/original/sound-effect-list.md, from EA's SOUNDTAB.DOC).
-; The game uses its own SFX... / Sng... equates (src/ram.asm) for the same numbers.
+; Sound effect numbers, named as in EA's sound list (docs/original/sound-effect-list.md, from EA's SOUNDTAB.DOC). The game uses
+; its own SFX... equates (src/ram.asm) for the same numbers.
+; Song numbers: the Sng... names the game uses (src/ram.asm); SOUNDTAB.DOC's music list is incomplete (SngReprise is not in ram.asm).
 siren             EQU 0  ; FM siren
 skating1          EQU 1  ; FM skate and stop short
 skating2          EQU 2  ; FM skate and stop short
@@ -42,11 +43,11 @@ hitboard2volm     EQU 29 ; hit board2 medium volume
 hitboard2vols     EQU 30 ; hit board2 softer volume
 oooh              EQU 31 ; crowd oooh (not in soundtab.doc; SFXoooh in ram.asm)
 
-song_endofperiod  EQU 0  ; END OF PERIOD
-song_splash       EQU 1  ; SPLASH
-song_unused       EQU 2  ; (unused/reserved)
-song_endofgame    EQU 3  ; END OF GAME
-song_playofftree  EQU 4  ; PLAY OFF TREE SCREEN
+SngTitle          EQU 1  ; Title song
+SngReprise        EQU 2  ; Title reprise
+SngEOP            EQU 0  ; End of Period song
+SngEOG            EQU 3  ; End of Game song
+SngPO             EQU 4  ; Playoffs music
 
 ; Z80 Memory Map
 z80_ram = $A00000
@@ -167,7 +168,7 @@ clear_workspace_loop:
 
 ; Music Track Initialization Function
 p_initune_fn:
-    move.l  d0,(g_CurrentTrackID).l ; Store track ID (e.g., splash=1)
+    move.l  d0,(g_CurrentTrackID).l ; Store track ID (e.g., SngTitle=1)
     move.b  #1,(g_MusicInitFlag).l  ; Set flag to initialize music
     rts                             ; Return
 
@@ -1168,128 +1169,128 @@ envelope3:  ; linear downward ramp starting at neutral and progressively detunin
 
 fmtune_pointer_table: ;0x10294-0x10315 | Bytes 0-1 = Num Tracks-1, Bytes 2-3: Tempo
 	dc.w $0507
-	dc.l fmtune_endofperiod_ch0 - p_music_vblank
-	dc.l fmtune_endofperiod_ch1 - p_music_vblank
-	dc.l fmtune_endofperiod_ch2 - p_music_vblank
-	dc.l fmtune_endofperiod_ch3 - p_music_vblank
-	dc.l fmtune_endofperiod_ch4 - p_music_vblank
-	dc.l fmtune_endofperiod_ch5 - p_music_vblank	; endofperiod (0)
+	dc.l fmtune_eop_ch0 - p_music_vblank
+	dc.l fmtune_eop_ch1 - p_music_vblank
+	dc.l fmtune_eop_ch2 - p_music_vblank
+	dc.l fmtune_eop_ch3 - p_music_vblank
+	dc.l fmtune_eop_ch4 - p_music_vblank
+	dc.l fmtune_eop_ch5 - p_music_vblank	; SngEOP (0)
 
 	dc.w $0506
-	dc.l fmtune_splash_ch0 - p_music_vblank
-	dc.l fmtune_splash_ch1 - p_music_vblank
-	dc.l fmtune_splash_ch2 - p_music_vblank
-	dc.l fmtune_splash_ch3 - p_music_vblank
-	dc.l fmtune_splash_ch4 - p_music_vblank
-	dc.l fmtune_splash_ch5 - p_music_vblank	; splash (1)
+	dc.l fmtune_title_ch0 - p_music_vblank
+	dc.l fmtune_title_ch1 - p_music_vblank
+	dc.l fmtune_title_ch2 - p_music_vblank
+	dc.l fmtune_title_ch3 - p_music_vblank
+	dc.l fmtune_title_ch4 - p_music_vblank
+	dc.l fmtune_title_ch5 - p_music_vblank	; SngTitle (1)
 
 	dc.w $0506
-	dc.l fmtune_unused_ch0 - p_music_vblank
-	dc.l fmtune_unused_ch1 - p_music_vblank
-	dc.l fmtune_unused_ch2 - p_music_vblank
-	dc.l fmtune_unused_ch3 - p_music_vblank
-	dc.l fmtune_unused_ch4 - p_music_vblank
-	dc.l fmtune_unused_ch5 - p_music_vblank	; unused (2): reserved in soundtab.doc, the data is a Title reprise
+	dc.l fmtune_reprise_ch0 - p_music_vblank
+	dc.l fmtune_reprise_ch1 - p_music_vblank
+	dc.l fmtune_reprise_ch2 - p_music_vblank
+	dc.l fmtune_reprise_ch3 - p_music_vblank
+	dc.l fmtune_reprise_ch4 - p_music_vblank
+	dc.l fmtune_reprise_ch5 - p_music_vblank	; SngReprise (2): reserved in soundtab.doc, the data is the Title reprise
 
 	dc.w $0506
-	dc.l fmtune_endofgame_ch0 - p_music_vblank
-	dc.l fmtune_endofgame_ch1 - p_music_vblank
-	dc.l fmtune_endofgame_ch2 - p_music_vblank
-	dc.l fmtune_endofgame_ch3 - p_music_vblank
-	dc.l fmtune_endofgame_ch4 - p_music_vblank
-	dc.l fmtune_endofgame_ch5 - p_music_vblank	; endofgame (3)
+	dc.l fmtune_eog_ch0 - p_music_vblank
+	dc.l fmtune_eog_ch1 - p_music_vblank
+	dc.l fmtune_eog_ch2 - p_music_vblank
+	dc.l fmtune_eog_ch3 - p_music_vblank
+	dc.l fmtune_eog_ch4 - p_music_vblank
+	dc.l fmtune_eog_ch5 - p_music_vblank	; SngEOG (3)
 
 	dc.w $0507
-	dc.l fmtune_playofftree_ch0 - p_music_vblank
-	dc.l fmtune_playofftree_ch1 - p_music_vblank
-	dc.l fmtune_playofftree_ch2 - p_music_vblank
-	dc.l fmtune_playofftree_ch3 - p_music_vblank
-	dc.l fmtune_playofftree_ch4 - p_music_vblank
-	dc.l fmtune_playofftree_ch5 - p_music_vblank	; playofftree (4)
+	dc.l fmtune_po_ch0 - p_music_vblank
+	dc.l fmtune_po_ch1 - p_music_vblank
+	dc.l fmtune_po_ch2 - p_music_vblank
+	dc.l fmtune_po_ch3 - p_music_vblank
+	dc.l fmtune_po_ch4 - p_music_vblank
+	dc.l fmtune_po_ch5 - p_music_vblank	; SngPO (4)
 
-fmtune_playofftree_ch0: ; 0x10316-0x1031F
+fmtune_po_ch0: ; 0x10316-0x1031F
     dc.w $11A3, $0002, $0003, $1A41, $0000
 
-fmtune_playofftree_ch1: ; 0x10320-0x1032D
+fmtune_po_ch1: ; 0x10320-0x1032D
     dc.w $118B, $11C7, $0002, $0003, $116D, $1CA5, $0000
 
-fmtune_playofftree_ch2: ; 0x1032E-0x1033B
+fmtune_po_ch2: ; 0x1032E-0x1033B
     dc.w $118B, $11F0, $0002, $0003, $116D, $1D00, $0000
 
-fmtune_playofftree_ch3: ; 0x1033C-0x1034B
+fmtune_po_ch3: ; 0x1033C-0x1034B
     dc.w $116D, $1219, $1275, $118E, $1219, $1275, $12DE, $0000
 
-fmtune_playofftree_ch4: ; 0x1034C-0x1035B
+fmtune_po_ch4: ; 0x1034C-0x1035B
     dc.w $116D, $1247, $12A8, $118E, $1247, $12A8, $133F, $0000
 
-fmtune_playofftree_ch5: ; 0x1035C-0x1035F
+fmtune_po_ch5: ; 0x1035C-0x1035F
     dc.w $1C35, $0000
 
-fmtune_endofgame_ch0: ; 0x10360-0x10367
+fmtune_eog_ch0: ; 0x10360-0x10367
     dc.w $1A41, $0002, $0003, $0000
 
-fmtune_endofgame_ch1: ; 0x10368-0x10371
+fmtune_eog_ch1: ; 0x10368-0x10371
     dc.w $116D, $1CA5, $0002, $0003, $0000
 
-fmtune_endofgame_ch3: ; 0x10372-0x1037B
+fmtune_eog_ch3: ; 0x10372-0x1037B
     dc.w $116D, $1D00, $0002, $0003, $0000
 
-fmtune_endofgame_ch2: ; 0x1037C-0x103A9
+fmtune_eog_ch2: ; 0x1037C-0x103A9
     dc.w $116D, $13A0, $118E, $13A0, $1547, $1547, $13D5, $140E
     dc.w $0002, $0003, $13D5, $116D, $141E, $118E, $13EF, $141E
     dc.w $13EF, $116D, $18D5, $18D5, $1649, $1649, $0000
 
-fmtune_endofgame_ch4: ; 0x103AA-0x103DD
+fmtune_eog_ch4: ; 0x103AA-0x103DD
     dc.w $118E, $14CD, $14CD, $156C, $156C, $1502, $119A, $1537
     dc.w $0002, $0003, $118E, $1502, $118E, $1477, $118E, $1518
     dc.w $118E, $1477, $119A, $1518, $116D, $198B, $198B, $1855
     dc.w $1855, $0000
 
-fmtune_endofgame_ch5: ; 0x103DE-0x1040D
+fmtune_eog_ch5: ; 0x103DE-0x1040D
     dc.w $1C35, $0002, $0006, $1D98, $1C35, $1C4E, $1C35, $1C35
     dc.w $1C35, $1C4E, $1C35, $1D98, $1C35, $0002, $0005, $1C65
     dc.w $1C35, $1C4E, $1C8D, $1C35, $1C8D, $1D98, $1C65, $0000
 
-fmtune_splash_ch0: ; 0x1040E-0x10425
+fmtune_title_ch0: ; 0x1040E-0x10425
     dc.w $118B, $1ED6, $1EF0, $1A87, $1ACB, $1A87, $1A41
     dc.w $0002, $0005, $1591, $0001, $0002
 
-fmtune_unused_ch0: ; 0x10426-0x1042D
+fmtune_reprise_ch0: ; 0x10426-0x1042D
     dc.w $1A41, $0002, $0003, $0000
 
-fmtune_splash_ch1: ; 0x1042E-0x10445
+fmtune_title_ch1: ; 0x1042E-0x10445
     dc.w $116D, $1EE3, $1EE3, $1BF1, $1CA5, $1BF1, $116D, $1CA5
     dc.w $0002, $0005, $116D, $160A
 
-fmtune_unused_ch1: ; 0x10446-0x1044D
+fmtune_reprise_ch1: ; 0x10446-0x1044D
     dc.w $1CA5, $0002, $0003, $0000
 
-fmtune_splash_ch3: ; 0x1044E-0x10467
+fmtune_title_ch3: ; 0x1044E-0x10467
     dc.w $118B, $1EE3, $1EE3, $116D, $1BAD, $1D00, $1BAD, $116D
     dc.w $1D00, $0002, $0005, $118B, $160A
 
-fmtune_unused_ch3: ; 0x10468-0x10471
+fmtune_reprise_ch3: ; 0x10468-0x10471
     dc.w $116D, $1D00, $0002, $0003, $0000
 
-fmtune_splash_ch2: ; 0x10472-0x10497
+fmtune_title_ch2: ; 0x10472-0x10497
     dc.w $118E, $1F42, $1F42, $116D, $1B1D, $118B, $1649, $118E
     dc.w $1B1D, $118B, $1649, $116D, $1649, $1649, $1649, $16BD
     dc.w $16BD, $116D, $15B0
 
-fmtune_unused_ch2: ; 0x10498-0x104A3
+fmtune_reprise_ch2: ; 0x10498-0x104A3
     dc.w $116D, $18D5, $18D5, $1649, $1649
     dc.w $0000
 
-fmtune_splash_ch4: ; 0x104A4-0x104C5
+fmtune_title_ch4: ; 0x104A4-0x104C5
     dc.w $11A0, $1F42, $1F42, $116D, $1156, $1156, $1B6A
     dc.w $116D, $17EF, $116D, $17EF, $17EF, $1855, $1756, $1756
     dc.w $116D, $15DE
     
 
-fmtune_unused_ch4: ; 0x104C6-0x104D1
+fmtune_reprise_ch4: ; 0x104C6-0x104D1
     dc.w $116D, $198B, $198B, $1855, $1855, $0000
 
-fmtune_splash_ch5: ; 0x104D2-0x10537
+fmtune_title_ch5: ; 0x104D2-0x10537
     dc.w $1DC4, $0002, $0006, $1DD2
     dc.w $1B0D, $0002, $0007, $1B0D, $0002, $0006
     dc.w $1D98, $1B0D, $0002, $0006, $1D98, $1B0D, $0002, $0006
@@ -1299,36 +1300,36 @@ fmtune_splash_ch5: ; 0x104D2-0x10537
     dc.w $1C65, $1C35, $1C4E, $1C8D, $1C35, $1C8D, $1D98, $1C65
     dc.w $1624
 
-fmtune_unused_ch5: ; 0x10538-0x10567
+fmtune_reprise_ch5: ; 0x10538-0x10567
     dc.w $1C35, $0002, $0006
     dc.w $1D98, $1C35, $1C4E, $1C35, $1C35, $1C35, $1C4E, $1C35
     dc.w $1D98, $1C35, $0002, $0005, $1C65, $1C35, $1C4E, $1C8D
     dc.w $1C35, $1C8D, $1D98, $1C65, $0000
 
-fmtune_endofperiod_ch0: ; 0x10568-0x1057F
+fmtune_eop_ch0: ; 0x10568-0x1057F
     dc.w $1ED6, $1EF0, $1D5B, $1D5B, $1D5B, $1D5B, $1D5B, $1D5B
     dc.w $1D5B, $1D5B, $1F83, $0000
 
-fmtune_endofperiod_ch1: ; 0x10580-0x1059B
+fmtune_eop_ch1: ; 0x10580-0x1059B
     dc.w $116D, $1EE3, $1EE3, $118B, $1DE7, $1DE7, $1DE7, $1DE7, $1DE7, $1DE7, $1DE7
     dc.w $1DE7, $1FC9, $0000
     
 
-fmtune_endofperiod_ch3: ; 0x1059C-0x105B5
+fmtune_eop_ch3: ; 0x1059C-0x105B5
     dc.w $118B, $1EE3, $1EE3, $1DFA, $1DFA
     dc.w $1DFA, $1DFA, $1DFA, $1DFA, $1DFA, $1DFA, $200C, $0000
 
-fmtune_endofperiod_ch2: ; 0x105B6-0x105C9
+fmtune_eop_ch2: ; 0x105B6-0x105C9
     dc.w $118E, $1F42
     dc.w $119A, $1F42, $116D, $1E0D
     dc.w $1E0D, $116D, $204F, $0000
     
-fmtune_endofperiod_ch4: ; 0x105CA-0x105DF
+fmtune_eop_ch4: ; 0x105CA-0x105DF
     dc.w $11A0, $1F42, $119D, $1F42, $116D, $1E73, $118E, $1E73, $116D, $20D5, $0000
 
     
 
-fmtune_endofperiod_ch5: ; 0x105E0-0x11624
+fmtune_eop_ch5: ; 0x105E0-0x11624
     dc.w $1DC4, $0002, $0006, $1DD2
     dc.w $1D6D, $0002, $0007
     dc.w $1D6D, $1D6D, $1D6D, $1DA9, $1D6D, $1D6D, $1D6D, $1DA9
