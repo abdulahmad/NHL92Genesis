@@ -7,7 +7,7 @@
 sfx_skating34_pcm_ofs = $12DE2 ; Hockey.snd offset of sfx_skating34_pcm (ROM $222AA - $F4C8), like the other PCM offsets passed to Sound_WriteYM2612; was fm_instrument_patch_sfx_id_3
 sfx_oooh_pcm_ofs = $10820 ; Hockey.snd offset of sfx_oooh_pcm (ROM $1FCE8 - $F4C8); was fm_instrument_patch_sfx_id_31
 
-; Sound effect and music numbers, named as in EA's sound list (src/_docs/SOUNDTAB.DOC).
+; Sound effect and music numbers, named as in EA's sound list (docs/original/sound-effect-list.md, from EA's SOUNDTAB.DOC).
 ; The game uses its own SFX... / Sng... equates (src/ram.asm) for the same numbers.
 siren             EQU 0  ; FM siren
 skating1          EQU 1  ; FM skate and stop short

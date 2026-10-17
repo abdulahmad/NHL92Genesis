@@ -62,6 +62,6 @@ async function calculateChecksums(romPath) {
 }
 
 // Example usage
-// Usage: node tools/generateChecksum.js [rom.bin] (default output/nhl92.bin)
-const romPath = process.argv[2] || path.join(__dirname, '..', 'output', 'nhl92.bin');
+// Usage: node tools/generateChecksum.js [rom.bin] (default output/retail/nhl92.bin)
+const romPath = process.argv[2] || path.join(__dirname, '..', 'output', 'retail', 'nhl92.bin');
 calculateChecksums(romPath).catch(() => process.exit(1));
