@@ -32,26 +32,26 @@ The password is displayed as a base 30 number using the numerals `BCDFGHJKLMNPRS
 Each bit of V17 is one game of the bracket. Only the top half of the tree is drawn; the other side is interpolated.
 
 ```text
-    Round 0		   Round 1		   Round 2
+    Round 0                Round 1                 Round 2
 
 _________________
 Game 1
-Bit 0		_________________
+Bit 0           _________________
 _________________
-		Game 1
-_________________	Bit 8		_________________
+                Game 1
+_________________       Bit 8           _________________
 Game 2
-Bit 1		_________________
+Bit 1           _________________
 _________________
-				Game 1
-_________________			Bit 12
+                                Game 1
+_________________                       Bit 12
 Game 3
-Bit 2		_________________
+Bit 2           _________________
 _________________
-		Game 2		_________________
-_________________	Bit 9
+                Game 2          _________________
+_________________       Bit 9
 Game 4
-Bit 3		_________________
+Bit 3           _________________
 _________________
 
 
