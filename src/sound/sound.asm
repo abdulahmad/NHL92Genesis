@@ -3,10 +3,6 @@
 ; Fully Commented and Labeled
 ; Handles music and sound effects via Z80 and YM2612 sound chip
 
-; Data Location
-sfx_skating34_pcm_ofs = $12DE2 ; Hockey.snd offset of sfx_skating34_pcm (ROM $222AA - $F4C8), like the other PCM offsets passed to Sound_WriteYM2612; was fm_instrument_patch_sfx_id_3
-sfx_oooh_pcm_ofs = $10820 ; Hockey.snd offset of sfx_oooh_pcm (ROM $1FCE8 - $F4C8); was fm_instrument_patch_sfx_id_31
-
 ; Sound effect numbers, named as in EA's sound list (docs/original/sound-effect-list.md, from EA's SOUNDTAB.DOC). The game uses
 ; its own SFX... equates (src/ram.asm) for the same numbers.
 ; Song numbers: the Sng... names the game uses (src/ram.asm); SOUNDTAB.DOC's music list is incomplete (SngReprise is not in ram.asm).
@@ -813,7 +809,7 @@ Sound_WriteYM2612:
 
 ; sam_hitboard1 (15): sample player hits boards 1.
 handle_sfx_sam_hitboard1:
-    move.l  #$53BE,d1               ; Load data
+    move.l  #sfx_sam_hitboard_pcm_ofs,d1 ; PCM sample offset
     move.b  #$13,d2                 ; Load param
     move.b  #1,d3                   ; Load param
     bsr.s   Sound_WriteYM2612       ; Write to YM2612
@@ -830,7 +826,7 @@ handle_sfx_skating3:
 
 ; Configures YM2612 for reset or stop.
 configure_ym2612:
-    move.l  #$53BA,d1               ; Load data
+    move.l  #sfx_sam_pass1_pcm_end_ofs,d1 ; PCM sample offset
     move.b  #$B,d2                  ; Load param
     move.b  #0,d3                   ; Load param
     bsr.s   Sound_WriteYM2612       ; Write to YM2612
@@ -846,7 +842,7 @@ handle_sfx_skating4:
 
 ; sam_hitboard2 (16): ditto at different playback rate.
 handle_sfx_sam_hitboard2:
-    move.l  #$53BE,d1               ; Load data
+    move.l  #sfx_sam_hitboard_pcm_ofs,d1 ; PCM sample offset
     move.b  #$18,d2                 ; Load param
     move.b  #1,d3                   ; Load param
     bsr.w   Sound_WriteYM2612       ; Write to YM2612
@@ -855,7 +851,7 @@ handle_sfx_sam_hitboard2:
 
 ; sam_hitboard3 (17): ditto at different playback rate.
 handle_sfx_sam_hitboard3:
-    move.l  #$53BE,d1               ; Load data
+    move.l  #sfx_sam_hitboard_pcm_ofs,d1 ; PCM sample offset
     move.b  #$10,d2                 ; Load param
     move.b  #1,d3                   ; Load param
     bsr.w   Sound_WriteYM2612       ; Write to YM2612
@@ -864,7 +860,7 @@ handle_sfx_sam_hitboard3:
 
 ; sam_hit1 (18): sample player hits (checks) another player 1.
 handle_sfx_sam_hit1:
-    move.l  #$62A0,d1               ; Load data
+    move.l  #sfx_sam_hit_pcm_ofs,d1 ; PCM sample offset
     move.b  #$10,d2                 ; Load param
     move.b  #1,d3                   ; Load param
     bsr.w   Sound_WriteYM2612       ; Write to YM2612
@@ -872,7 +868,7 @@ handle_sfx_sam_hit1:
 
 ; sam_hit2 (19): ditto at different playback rate.
 handle_sfx_sam_hit2:
-    move.l  #$62A0,d1               ; Load data
+    move.l  #sfx_sam_hit_pcm_ofs,d1 ; PCM sample offset
     move.b  #$13,d2                 ; Load param
     move.b  #1,d3                   ; Load param
     bsr.w   Sound_WriteYM2612       ; Write to YM2612
@@ -880,7 +876,7 @@ handle_sfx_sam_hit2:
 
 ; sam_hit3 (20): ditto at different playback rate.
 handle_sfx_sam_hit3:
-    move.l  #$62A0,d1               ; Load data
+    move.l  #sfx_sam_hit_pcm_ofs,d1 ; PCM sample offset
     move.b  #$18,d2                 ; Load param
     move.b  #1,d3                   ; Load param
     bsr.w   Sound_WriteYM2612       ; Write to YM2612
@@ -888,7 +884,7 @@ handle_sfx_sam_hit3:
 
 ; sam_pass1 (11): sample pass shot #1.
 handle_sfx_sam_pass1:
-    move.l  #$4498,d1               ; Load data
+    move.l  #sfx_sam_pass1_pcm_ofs,d1 ; PCM sample offset
     move.b  #$C,d2                  ; Load param
     move.b  #2,d3                   ; Load param
     bsr.w   Sound_WriteYM2612       ; Write to YM2612
@@ -896,7 +892,7 @@ handle_sfx_sam_pass1:
 
 ; sam_pass2 (12): sample pass shot #2 more beef.
 handle_sfx_sam_pass2:
-    move.l  #$3590,d1               ; Load data
+    move.l  #sfx_sam_pass2_pcm_ofs,d1 ; PCM sample offset
     move.b  #$C,d2                  ; Load param
     move.b  #2,d3                   ; Load param
     bsr.w   Sound_WriteYM2612       ; Write to YM2612
@@ -904,7 +900,7 @@ handle_sfx_sam_pass2:
 
 ; sam_puck2_slap (13): sample slap shot.
 handle_sfx_sam_puck2_slap:
-    move.l  #$2776,d1               ; Load data
+    move.l  #sfx_sam_puck2_slap_pcm_ofs,d1 ; PCM sample offset
     move.b  #$B,d2                  ; Load param
     move.b  #2,d3                   ; Load param
     bsr.w   Sound_WriteYM2612       ; Write to YM2612
@@ -912,7 +908,7 @@ handle_sfx_sam_puck2_slap:
 
 ; sam_punch1 (21): sample fighting punch sound.
 handle_sfx_sam_punch1:
-    move.l  #$73E2,d1               ; Load data
+    move.l  #sfx_sam_punch_pcm_ofs,d1 ; PCM sample offset
     move.b  #$15,d2                 ; Load param
     move.b  #2,d3                   ; Load param
     bsr.w   Sound_WriteYM2612       ; Write to YM2612
@@ -920,7 +916,7 @@ handle_sfx_sam_punch1:
 
 ; sam_punch3 (23): ditto at different playback rate.
 handle_sfx_sam_punch3:
-    move.l  #$73E2,d1               ; Load data
+    move.l  #sfx_sam_punch_pcm_ofs,d1 ; PCM sample offset
     move.b  #$1F,d2                 ; Load param
     move.b  #2,d3                   ; Load param
     bsr.w   Sound_WriteYM2612       ; Write to YM2612
@@ -928,7 +924,7 @@ handle_sfx_sam_punch3:
 
 ; sam_punch2 (22): ditto at different playback rate.
 handle_sfx_sam_punch2:
-    move.l  #$73E2,d1               ; Load data
+    move.l  #sfx_sam_punch_pcm_ofs,d1 ; PCM sample offset
     move.b  #$19,d2                 ; Load param
     move.b  #2,d3                   ; Load param
     bsr.w   Sound_WriteYM2612       ; Write to YM2612
@@ -936,7 +932,7 @@ handle_sfx_sam_punch2:
 
 ; sam_crowdgoal (25): sample crowd cheer.
 handle_sfx_sam_crowdgoal:
-    move.l  #$793C,d1               ; Load data
+    move.l  #sfx_sam_crowdgoal_pcm_ofs,d1 ; PCM sample offset
     move.b  #$13,d2                 ; Load param
     move.b  #0,d3                   ; Load param
     bsr.w   Sound_WriteYM2612       ; Write to YM2612
@@ -944,7 +940,7 @@ handle_sfx_sam_crowdgoal:
 
 ; sam_booing (26): sample short booing.
 handle_sfx_sam_booing:
-    move.l  #$E2BE,d1               ; Load data
+    move.l  #sfx_sam_booing_pcm_ofs,d1 ; PCM sample offset
     move.b  #$18,d2                 ; Load param
     move.b  #0,d3                   ; Load param
     bsr.w   Sound_WriteYM2612       ; Write to YM2612
@@ -2011,31 +2007,42 @@ Z80_Program_Code
 ; { name: 'sfx_sam_puck2_slap_pcm.bin', folder: 'Sound', start: 0x11C3E, end: 0x12A58 },
 sfx_sam_puck2_slap_pcm
     incbin ..\Extracted\Sound\sfx_sam_puck2_slap_pcm.bin
+sfx_sam_puck2_slap_pcm_ofs = sfx_sam_puck2_slap_pcm-p_music_vblank ; offset of the start of sfx_sam_puck2_slap_pcm from p_music_vblank, as Sound_WriteYM2612 takes it
 ; { name: 'sfx_sam_pass2_pcm.bin', folder: 'Sound', start: 0x12A58, end: 0x13960 },
 sfx_sam_pass2_pcm
     incbin ..\Extracted\Sound\sfx_sam_pass2_pcm.bin
+sfx_sam_pass2_pcm_ofs = sfx_sam_pass2_pcm-p_music_vblank ; offset of the start of sfx_sam_pass2_pcm from p_music_vblank, as Sound_WriteYM2612 takes it
 ; { name: 'sfx_sam_pass1_pcm.bin', folder: 'Sound', start: 0x13960, end: 0x14886 },
 sfx_sam_pass1_pcm
     incbin ..\Extracted\Sound\sfx_sam_pass1_pcm.bin
+sfx_sam_pass1_pcm_ofs = sfx_sam_pass1_pcm-p_music_vblank ; offset of the start of sfx_sam_pass1_pcm from p_music_vblank, as Sound_WriteYM2612 takes it
+sfx_sam_pass1_pcm_end_ofs = (*-4)-p_music_vblank ; the last 4 bytes of sfx_sam_pass1_pcm (configure_ym2612 reads from here)
 ; { name: 'sfx_sam_hitboard_pcm.bin', folder: 'Sound', start: 0x14886, end: 0x15768 }, // sam_hitboard1-3 (15-17)
 sfx_sam_hitboard_pcm
     incbin ..\Extracted\Sound\sfx_sam_hitboard_pcm.bin
+sfx_sam_hitboard_pcm_ofs = sfx_sam_hitboard_pcm-p_music_vblank ; offset of the start of sfx_sam_hitboard_pcm from p_music_vblank, as Sound_WriteYM2612 takes it
 ; { name: 'sfx_sam_hit_pcm.bin', folder: 'Sound', start: 0x15768, end: 0x168AA }, // sam_hit1-3 (18-20)
 sfx_sam_hit_pcm
     incbin ..\Extracted\Sound\sfx_sam_hit_pcm.bin
-; { name: 'sfx_sam_punch_pcm.bin', folder: 'Sound', start: 0x168AA, end: 0x16E04 }, // offset in code is 168B0; sam_punch1-3 (21-23)
+sfx_sam_hit_pcm_ofs = sfx_sam_hit_pcm-p_music_vblank ; offset of the start of sfx_sam_hit_pcm from p_music_vblank, as Sound_WriteYM2612 takes it
+; { name: 'sfx_sam_punch_pcm.bin', folder: 'Sound', start: 0x168AA, end: 0x16E04 }, // sam_punch1-3 (21-23)
 sfx_sam_punch_pcm
     incbin ..\Extracted\Sound\sfx_sam_punch_pcm.bin
+sfx_sam_punch_pcm_ofs = sfx_sam_punch_pcm-p_music_vblank ; offset of the start of sfx_sam_punch_pcm from p_music_vblank, as Sound_WriteYM2612 takes it
 ; { name: 'sfx_sam_crowdgoal_pcm.bin', folder: 'Sound', start: 0x16E04, end: 0x1D786 },
 sfx_sam_crowdgoal_pcm
     incbin ..\Extracted\Sound\sfx_sam_crowdgoal_pcm.bin
+sfx_sam_crowdgoal_pcm_ofs = sfx_sam_crowdgoal_pcm-p_music_vblank ; offset of the start of sfx_sam_crowdgoal_pcm from p_music_vblank, as Sound_WriteYM2612 takes it
 ; { name: 'sfx_sam_booing_pcm.bin', folder: 'Sound', start: 0x1D786, end: 0x1FCE8 },
 sfx_sam_booing_pcm
     incbin ..\Extracted\Sound\sfx_sam_booing_pcm.bin
-; { name: 'sfx_oooh_pcm.bin', folder: 'Sound', start: 0x1FCE8, end: 0x222AA }, // oooh (31), offset in code is 1FD88
+sfx_sam_booing_pcm_ofs = sfx_sam_booing_pcm-p_music_vblank ; offset of the start of sfx_sam_booing_pcm from p_music_vblank, as Sound_WriteYM2612 takes it
+; { name: 'sfx_oooh_pcm.bin', folder: 'Sound', start: 0x1FCE8, end: 0x222AA }, // oooh (31)
 sfx_oooh_pcm
     incbin ..\Extracted\Sound\sfx_oooh_pcm.bin
+sfx_oooh_pcm_ofs = sfx_oooh_pcm-p_music_vblank ; offset of the start of sfx_oooh_pcm from p_music_vblank, as Sound_WriteYM2612 takes it
 ; // is there a break at 0x1FFA3?
 ; { name: 'sfx_skating34_pcm.bin', folder: 'Sound', start: 0x222AA, end: 0x00024214 }, // skating3-4 (3-4)
 sfx_skating34_pcm
     incbin ..\Extracted\Sound\sfx_skating34_pcm.bin
+sfx_skating34_pcm_ofs = sfx_skating34_pcm-p_music_vblank ; offset of the start of sfx_skating34_pcm from p_music_vblank, as Sound_WriteYM2612 takes it
