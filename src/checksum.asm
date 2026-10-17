@@ -9,12 +9,7 @@ SecurityCheck:
 ValidationRoutine:
             MOVEQ   #0, D0       ; Clear D0 (initialize checksum or accumulator)
             SUBA.L   A0, A0       ; Normalize A0 (subtract D0 from address register)
-            IF REV=0 ; RETAIL
-                MOVE.L  #ValidationRoutine/4, D1 ; number of longs below this routine ($1FFA3)
-            ELSE ; REV A: the routine is $1C higher ($7FEA8), but the count is still the retail $1FFA3:
-                 ; the sum stops at $7FE8C, inside EASNmap ($7FC3C-$7FEA5), so no label marks it
-                MOVE.L  #$1FFA3, D1
-            ENDIF
+            MOVE.L  #$1FFA3, D1  ; Load address $1FFA3 into A1 (data pointer?)
 ValidationLoop:
             CMPA.W  #$18C, A0    ; Check if A0 equals $18C (memory boundary)
             BNE.S   SkipIncrement ; Branch if not equal

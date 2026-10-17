@@ -19,7 +19,7 @@
 		dc.w	$0000				; 06	$18E	check sum data (installed by checsum program) (2 bytes)
 	ENDIF
 	dc.b	'J               '	; 07	$190	I/O peripheral info. (J=Control Pad) (16 bytes)
-	dc.l	$00000000,endofcart-1	; 08	$1A0	cartridge size (start and end address) (16 bytes)
+	dc.l	$00000000,$0007FFFF	; 08	$1A0	cartridge size (start and end address) (16 bytes)
 	dc.l	$00FF0000,$00FFFFFF	; 09	$1A8	RAM size (start and end address) (16 bytes)
 	dc.b	'            '		; 10	$1B0	external RAM info. (12 bytes)
 	dc.b	'            '		; 11	$1BC	modem info. (12 bytes)

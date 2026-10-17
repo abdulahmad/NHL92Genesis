@@ -10,7 +10,8 @@
 // nhl92retailRevA.bin. dev: REV=1 CHECKSUM=0 (no validation routine), not verified.
 // Each mode has its own folder: output/<mode>/nhl92.bin is the ROM, output/<mode>/obj/ holds the intermediates (the
 // modified logo and sound binaries, assembler logs and listings). The main ROM includes the modified logo and sound
-// binaries of its own mode (src/main.asm and src/hockey.asm pick the path from MODE), so those are built first.
+// binaries, which are built first and copied to output/modified_EALogo.bin and output/modified_Hockey.snd, the paths
+// src/main.asm and src/hockey.asm include them from (the sources are EA's, unchanged).
 const fs = require('fs');
 const path = require('path');
 const { spawn } = require('child_process');
@@ -19,10 +20,9 @@ const ROOT = path.join(__dirname, '..');
 const WIN = process.platform === 'win32';
 const EXE = path.join(ROOT, 'assembler', 'Assembler.exe');
 const MODES = {
-    // id is the MODE equate src/main.asm and src/hockey.asm use to include this mode's logo and sound binaries.
-    retail: { id: 0, rev: 0, checksum: 1, prebuild: 'retail', ref: 'nhl92retail.bin' },
-    reva: { id: 1, rev: 1, checksum: 1, prebuild: 'reva', ref: 'nhl92retailRevA.bin' },
-    dev: { id: 2, rev: 1, checksum: 0, prebuild: 'dev', ref: null },
+    retail: { rev: 0, checksum: 1, prebuild: 'retail', ref: 'nhl92retail.bin' },
+    reva: { rev: 1, checksum: 1, prebuild: 'reva', ref: 'nhl92retailRevA.bin' },
+    dev: { rev: 1, checksum: 0, prebuild: 'dev', ref: null },
 };
 
 const args = process.argv.slice(2);
@@ -137,7 +137,7 @@ const node = (script, argv) => run(process.execPath, [path.join(__dirname, scrip
 async function assemble(name, src, outBase, binExt, rev, checksum) {
     const asmArgs = ['/p', '/m', '/g', '/o', 'd-', '/o', 's-', '/o', 'r+', '/o', 'l+', '/o', 'l.', '/o', 'ow+', '/o', 'op-',
         '/o', 'os+', '/o', 'oz+', '/o', 'omq-', '/o', 'oaq+', '/o', 'osq+',
-        '/e', `REV=${rev}`, '/e', `CHECKSUM=${checksum}`, '/e', `MODE=${mode.id}`, `${src},${outBase}${binExt},${outBase},${outBase}`];
+        '/e', `REV=${rev}`, '/e', `CHECKSUM=${checksum}`, `${src},${outBase}${binExt},${outBase},${outBase}`];
     const r = await (WIN ? run(EXE, asmArgs, { cwd: path.join(ROOT, 'src') })
         : run('wine', [EXE, ...asmArgs], { cwd: path.join(ROOT, 'src'), env: { ...process.env, WINEDEBUG: '-all' } }));
     const base = path.join(ROOT, 'src', outBase.replace(/\\/g, '/'));
@@ -171,6 +171,8 @@ async function subBuild(name, src, base, ext, rev, checksum) {
     begin(name);
     const a = await assemble(name, src, `..\\output\\${modeName}\\obj\\${base}`, ext, rev, checksum);
     const f = await fixopcodes(name, a);
+    // EA's sources include these from output/, so the copy of this mode's build goes there.
+    fs.copyFileSync(f.fixed, path.join(ROOT, 'output', path.basename(f.fixed)));
     step(name, `${a.errors} errors, ${a.warnings} warnings, ${a.lines} lines in ${a.secs}s, ${f.count} opcodes fixed${f.skipped ? `, ${f.skipped} skipped` : ''} -> ${rel(f.fixed)}`);
 }
 
@@ -209,7 +211,7 @@ async function subBuild(name, src, base, ext, rev, checksum) {
         detail(r.out);
     }
 
-    // 2-3. EA logo and sound driver, included by the main ROM from output/<mode>/obj/.
+    // 2-3. EA logo and sound driver, included by the main ROM from output/ (copied there from output/<mode>/obj/).
     if (only !== 'sound') await subBuild('logo', 'EALogo.asm', 'EALogo', '.bin', rev, checksum);
     if (only !== 'logo') await subBuild('sound', 'sound\\sound.asm', 'Hockey', '.snd', rev, checksum);
     if (only) return;

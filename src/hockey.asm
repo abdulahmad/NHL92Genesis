@@ -5642,15 +5642,7 @@ p_initialZ80	equ	(*+4)
 p_initune	equ	(*+8)
 p_turnoff	equ	(*+12)
 p_initfx	equ	(*+16)
-	IF MODE=0 ; retail
-	incbin ..\output\retail\obj\modified_Hockey.snd
-	ENDIF
-	IF MODE=1 ; Rev A
-	incbin ..\output\reva\obj\modified_Hockey.snd
-	ENDIF
-	IF MODE=2 ; dev
-	incbin ..\output\dev\obj\modified_Hockey.snd
-	ENDIF
+	incbin ..\output\modified_Hockey.snd
 	even
 
 GameSetUpMap
@@ -5715,7 +5707,11 @@ EASNmap
 	even
 	IF CHECKSUM=1 ; Security Code used during Mastering of Retail Cartridge
 		include checksum.asm
-		dcb.b   $80000-*,$FF
+		IF REV=0 ; RETAIL
+			dcb.b   0x124,$FF
+		ELSE ; REV A
+			dcb.b   0x108,$FF
+		ENDIF
 	ENDIF
 endofcart
    	end

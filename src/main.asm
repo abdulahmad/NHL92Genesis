@@ -82,15 +82,7 @@ Start
 		nop
 	ENDIF
 	
-	IF MODE=0 ; retail
-	incbin ..\output\retail\obj\modified_EALogo.bin
-	ENDIF
-	IF MODE=1 ; Rev A
-	incbin ..\output\reva\obj\modified_EALogo.bin
-	ENDIF
-	IF MODE=2 ; dev
-	incbin ..\output\dev\obj\modified_EALogo.bin
-	ENDIF
+	incbin ..\output\modified_EALogo.bin
 
 	bra	Begin
 

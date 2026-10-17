@@ -683,7 +683,7 @@ restorepl	;restore old joy controlled player
 	bset	#pfjoycon,pflags(a3)
 	movem.l	(a7)+,a0-a3/d0-d3
 	rts	
-MissingCode	;This code is missing from the original source code	
+	;This code is missing from the original source code
 	dc.b $EE, $49       ; Equivalent to `link a7, #-0xB7`?
 	dc.b $30, $01       ; Equivalent to `move.w d1, (a0)`?
 	dc.b $4E, $75       ; Equivalent to `rts`
