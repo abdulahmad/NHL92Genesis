@@ -684,9 +684,12 @@ restorepl	;restore old joy controlled player
 	movem.l	(a7)+,a0-a3/d0-d3
 	rts	
 MissingCode	;This code is missing from the original source code	
-	dc.b $EE, $49       ; Equivalent to `link a7, #-0xB7`?
-	dc.b $30, $01       ; Equivalent to `move.w d1, (a0)`?
-	dc.b $4E, $75       ; Equivalent to `rts`
+	dc.b $EE, $49       ; lsr.w #7,d1
+	dc.b $30, $01       ; move.w d1,d0
+	dc.b $4E, $75       ; rts
+	; Unreachable and never called: it follows the rts of restorepl and nothing references it. It is d1 >> 7, the
+	; inverse of the asl #scsize in restorepl (a sort object offset back to its index). NHLPA93Genesis has these three
+	; instructions inside restorepl, where a player in line change mode keeps control.
 
 Findhittype	;look for type of swing (forhand or backhand)
 ;input d0 = launch dir
