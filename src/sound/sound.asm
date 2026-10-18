@@ -2004,45 +2004,34 @@ Sound_LoadZ80Program:
 
 Z80_Program_Code
     incbin ..\Extracted\Sound\z80_snd_drv.bin
-; { name: 'sfx_sam_puck2_slap_pcm.bin', folder: 'Sound', start: 0x11C3E, end: 0x12A58 },
 sfx_sam_puck2_slap_pcm
     incbin ..\Extracted\Sound\sfx_sam_puck2_slap_pcm.bin
-sfx_sam_puck2_slap_pcm_ofs = sfx_sam_puck2_slap_pcm-p_music_vblank ; offset of the start of sfx_sam_puck2_slap_pcm from p_music_vblank, as Sound_WriteYM2612 takes it
-; { name: 'sfx_sam_pass2_pcm.bin', folder: 'Sound', start: 0x12A58, end: 0x13960 },
+sfx_sam_puck2_slap_pcm_ofs = sfx_sam_puck2_slap_pcm-p_music_vblank
 sfx_sam_pass2_pcm
     incbin ..\Extracted\Sound\sfx_sam_pass2_pcm.bin
-sfx_sam_pass2_pcm_ofs = sfx_sam_pass2_pcm-p_music_vblank ; offset of the start of sfx_sam_pass2_pcm from p_music_vblank, as Sound_WriteYM2612 takes it
-; { name: 'sfx_sam_pass1_pcm.bin', folder: 'Sound', start: 0x13960, end: 0x14886 },
+sfx_sam_pass2_pcm_ofs = sfx_sam_pass2_pcm-p_music_vblank
 sfx_sam_pass1_pcm
     incbin ..\Extracted\Sound\sfx_sam_pass1_pcm.bin
-sfx_sam_pass1_pcm_ofs = sfx_sam_pass1_pcm-p_music_vblank ; offset of the start of sfx_sam_pass1_pcm from p_music_vblank, as Sound_WriteYM2612 takes it
-sfx_sam_pass1_pcm_end_ofs = (*-4)-p_music_vblank ; the last 4 bytes of sfx_sam_pass1_pcm (configure_ym2612 reads from here)
-; { name: 'sfx_sam_hitboard_pcm.bin', folder: 'Sound', start: 0x14886, end: 0x15768 }, // sam_hitboard1-3 (15-17)
+sfx_sam_pass1_pcm_ofs = sfx_sam_pass1_pcm-p_music_vblank
+sfx_sam_pass1_pcm_end_ofs = (*-4)-p_music_vblank
 sfx_sam_hitboard_pcm
     incbin ..\Extracted\Sound\sfx_sam_hitboard_pcm.bin
-sfx_sam_hitboard_pcm_ofs = sfx_sam_hitboard_pcm-p_music_vblank ; offset of the start of sfx_sam_hitboard_pcm from p_music_vblank, as Sound_WriteYM2612 takes it
-; { name: 'sfx_sam_hit_pcm.bin', folder: 'Sound', start: 0x15768, end: 0x168AA }, // sam_hit1-3 (18-20)
+sfx_sam_hitboard_pcm_ofs = sfx_sam_hitboard_pcm-p_music_vblank
 sfx_sam_hit_pcm
     incbin ..\Extracted\Sound\sfx_sam_hit_pcm.bin
-sfx_sam_hit_pcm_ofs = sfx_sam_hit_pcm-p_music_vblank ; offset of the start of sfx_sam_hit_pcm from p_music_vblank, as Sound_WriteYM2612 takes it
-; { name: 'sfx_sam_punch_pcm.bin', folder: 'Sound', start: 0x168AA, end: 0x16E04 }, // sam_punch1-3 (21-23)
+sfx_sam_hit_pcm_ofs = sfx_sam_hit_pcm-p_music_vblank
 sfx_sam_punch_pcm
     incbin ..\Extracted\Sound\sfx_sam_punch_pcm.bin
-sfx_sam_punch_pcm_ofs = sfx_sam_punch_pcm-p_music_vblank ; offset of the start of sfx_sam_punch_pcm from p_music_vblank, as Sound_WriteYM2612 takes it
-; { name: 'sfx_sam_crowdgoal_pcm.bin', folder: 'Sound', start: 0x16E04, end: 0x1D786 },
+sfx_sam_punch_pcm_ofs = sfx_sam_punch_pcm-p_music_vblank
 sfx_sam_crowdgoal_pcm
     incbin ..\Extracted\Sound\sfx_sam_crowdgoal_pcm.bin
-sfx_sam_crowdgoal_pcm_ofs = sfx_sam_crowdgoal_pcm-p_music_vblank ; offset of the start of sfx_sam_crowdgoal_pcm from p_music_vblank, as Sound_WriteYM2612 takes it
-; { name: 'sfx_sam_booing_pcm.bin', folder: 'Sound', start: 0x1D786, end: 0x1FCE8 },
+sfx_sam_crowdgoal_pcm_ofs = sfx_sam_crowdgoal_pcm-p_music_vblank
 sfx_sam_booing_pcm
     incbin ..\Extracted\Sound\sfx_sam_booing_pcm.bin
-sfx_sam_booing_pcm_ofs = sfx_sam_booing_pcm-p_music_vblank ; offset of the start of sfx_sam_booing_pcm from p_music_vblank, as Sound_WriteYM2612 takes it
-; { name: 'sfx_oooh_pcm.bin', folder: 'Sound', start: 0x1FCE8, end: 0x222AA }, // oooh (31)
+sfx_sam_booing_pcm_ofs = sfx_sam_booing_pcm-p_music_vblank
 sfx_oooh_pcm
     incbin ..\Extracted\Sound\sfx_oooh_pcm.bin
-sfx_oooh_pcm_ofs = sfx_oooh_pcm-p_music_vblank ; offset of the start of sfx_oooh_pcm from p_music_vblank, as Sound_WriteYM2612 takes it
-; // is there a break at 0x1FFA3?
-; { name: 'sfx_skating34_pcm.bin', folder: 'Sound', start: 0x222AA, end: 0x00024214 }, // skating3-4 (3-4)
+sfx_oooh_pcm_ofs = sfx_oooh_pcm-p_music_vblank
 sfx_skating34_pcm
     incbin ..\Extracted\Sound\sfx_skating34_pcm.bin
-sfx_skating34_pcm_ofs = sfx_skating34_pcm-p_music_vblank ; offset of the start of sfx_skating34_pcm from p_music_vblank, as Sound_WriteYM2612 takes it
+sfx_skating34_pcm_ofs = sfx_skating34_pcm-p_music_vblank
