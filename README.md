@@ -72,3 +72,7 @@ The documentation lives in [`docs/`](docs/README.md):
 - [File formats](docs/file-formats.md): `.JIM`, `.ANIM` and `.PAL`
 - [Modding](docs/modding.md): developing on this build, known issues, tips
 - [EA's original documents](docs/original/README.md): the 1990-91 design review, ROM map update, password logic, sound effect lists and sine table
+
+## AI assistance
+
+This project is AI-assisted. The work is directed by a strict ruleset and curated by hand, with the aim of producing correctly labelled and commented code that matches the spirit of what the original source code would have been. We can't guarantee it's perfect, and ultimately this will always be a work in progress. If you see something that needs fixing, raise an issue, or even better, raise a PR.
