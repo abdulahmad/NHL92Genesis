@@ -86,6 +86,7 @@ const assets = [
     { name: 'fmtune_channel_data.bin', folder: 'Sound', start: 0x10316, end: 0x1061E }, // the data changes around 1061E
     { name: 'fmtune_sequence_data.bin', folder: 'Sound', start: 0x1061E, end: 0x11624 },
     // code segment 3 0x11624 - 0x116A6
+    // Z80 driver bytes: not an input to the build (src/sound/z80_snd_drv.asm is), only the reference build.js checks it against
     { name: 'z80_snd_drv.bin', folder: 'Sound', start: 0x116A6, end: 0x11C3E },
     { name: 'sfx_sam_puck2_slap_pcm.bin', folder: 'Sound', start: 0x11C3E, end: 0x12A58 },
     { name: 'sfx_sam_pass2_pcm.bin', folder: 'Sound', start: 0x12A58, end: 0x13960 },

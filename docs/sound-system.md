@@ -9,7 +9,7 @@ NHL 92 uses a hybrid sound system: The 68000 CPU handles high-level music/SFX lo
   
 - **Z80 Side ([`src/sound/z80_snd_drv.asm`](../src/sound/z80_snd_drv.asm))**: Loaded into Z80 RAM at $A00000. Its main loop plays one DAC (PCM) byte per pass and, when the 68000 has posted an update, writes the six FM channel slots (patch, key on/off, frequency, carrier level) to the YM2612. It never writes the PSG. See [Z80 Snd Drv](#z80-snd-drv).
 
-- **Interaction**: 68000 writes to shared RAM (e.g., `z80_channel_data_buffer_RAM`), sets flags (`z80_audio_update_flag`), and requests Z80 bus (`IO_Z80BUS`). Z80 reads these and outputs to YM2612/PSG ports ($4000-$4003).
+- **Interaction**: 68000 writes to shared RAM (`z80_channel_data_buffer`, the `z80_sfx_*` DAC sample mailbox), sets `z80_audio_update_flag`, and requests Z80 bus (`IO_Z80BUS`). Z80 reads these and outputs to YM2612/PSG ports ($4000-$4003).
 
 - **Music Tracks**: 5 tracks (e.g., Title, EOP). Pointers in `fmtune_pointer_table` (num channels, tempo, channel data offsets). Sequences (`fmtune_seq0` etc.) use commands like $84 (loop), $88 (pitch adjust).
 
@@ -30,7 +30,7 @@ NHL 92 uses a hybrid sound system: The 68000 CPU handles high-level music/SFX lo
 Pointer table at $1035C (35 entries, longwords relative to `p_music_vblank`). Maps SFX IDs (0-34) to handlers (e.g., $0 = `handle_sfx_siren`). IDs 0-31 are the SFX in EA's list (the `SFX...` equates in `src/ram.asm`); IDs 32-34 are unused duplicates of ID 30 (`handle_sfx_hitboard2vols`). ID 31 (`handle_sfx_oooh`) has its own handler.
 
 ### SFX handler
-Handlers (e.g., `handle_sfx_sam_puck2_slap`) load YM2612 params or init channels via `Sound_InitSFXChannel`. Many write direct to YM2612 (e.g., `Sound_WriteYM2612`) for freq/volume, or chain to others (e.g., `handle_sfx_sam_hitboard1` chains to `handle_sfx_hitboard`).
+Handlers (e.g., `handle_sfx_sam_puck2_slap`) load YM2612 params or init channels via `Sound_InitSFXChannel`. DAC (PCM) SFX call `Sound_RequestDacSample` (sample offset, rate, priority), which the vblank copies to the Z80 mailbox. Some chain to others (e.g., `handle_sfx_sam_hitboard1` chains to `handle_sfx_hitboard`).
 
 ### SFX cmdstream
 Extracted .bin files (e.g., `sfx_siren_cmdstream_ch0.bin` at $FF74). Byte streams parsed in `Sound_Process_SFXChannels`: $80 (set instrument), $81/$82 (delay/alt delay), $83 (freq sweep: counter, base freq, increment), $84 (stop), $85 (loop). Frequency normalized to YM2612 range ($000-$7FF).
@@ -61,7 +61,7 @@ Channel offsets (e.g., `fmtune_eop_ch0` at $10568): Words pointing to sequences 
 Sequences (`fmtune_seq0` at $1061E+): Byte streams for notes/rests ($00-$5F note/rest, $60 rest), commands ($80+ as in SFX but music-specific: $80 instr, $81 mod, $83 sustain, $84 loop, $85 stop, $86 env, $87 clear env, $88 pitch, $89 flag, $8A skip, $8B SFX). Durations $8C-$9F (multiplied by tempo).
 
 ## Z80 Snd Drv
-Source: [`src/sound/z80_snd_drv.asm`](../src/sound/z80_snd_drv.asm), assembled with asm80 by the build's `z80` step into `output/<mode>/obj/z80_snd_drv.bin` and included by `sound.asm` at `Z80_Program_Code` (ROM $116A6-$11C3D, $598 bytes). The build checks the assembled driver byte-for-byte against the ROM. `Sound_LoadZ80Program` copies $597 of those bytes (the comment there says $598); the last byte ($6E) never reaches Z80 RAM. The older IDA-style listing [`z80_snd_drv.lst`](z80_snd_drv.lst) is kept for reference only: it does not match the bytes in several places (for example it shows `im 1`, the driver uses `im 0`; and its routine addresses and names don't line up with the code), so use the source.
+Source: [`src/sound/z80_snd_drv.asm`](../src/sound/z80_snd_drv.asm), assembled with asm80 by the build's `z80` step into `output/<mode>/obj/z80_snd_drv.bin` and included by `sound.asm` at `Z80_Program_Code` (ROM $116A6-$11C3D, $598 bytes). The build checks the assembled driver byte-for-byte against the ROM. `Sound_LoadZ80Program` copies only the first $597 bytes; the last byte ($6E, `Z80_DriverLastByte`) never reaches Z80 RAM. The prebuild still extracts the ROM bytes to `Extracted/Sound/z80_snd_drv.bin`, only as the reference for that check. The 68000 and Z80 sources use the same names for the shared bytes.
 
 Z80 RAM layout (names as in the source; the 68000 names from `sound.asm` are used for the shared bytes):
 
@@ -69,9 +69,9 @@ Z80 RAM layout (names as in the source; the 68000 names from `sound.asm` are use
 |---|---|---|
 | $0000 | `Z80_DriverStart` | `jp Z80_Init`; $0003-$0037 unused (zero) |
 | $0038 | `Z80_Init`, `MainLoop` | Stack $1FFF, interrupts off; main loop: DAC byte, FM update, rate delay |
-| $007A | `z80_dac_rate` | Operand of the DAC delay loop (self-modified), from `z80_sfxparam3` |
+| $007A | `z80_dac_rate` | Operand of the DAC delay loop (self-modified), from `z80_sfx_rate` |
 | $00A8, $00B0, $00B2 | `z80_dac_start_bank`, `z80_dac_start_addr_high/low` | Operands of `DacStartSample` (self-modified) |
-| $00BE-$00C3 | `z80_sfxparam1`, `z80_sfx_control_ram`, `z80_sfxparam2`-`5` | DAC sample mailbox: address low, address high \| $80, request (0 = new), rate, bank, priority |
+| $00BE-$00C3 | `z80_sfx_addr_low`, `z80_sfx_addr_high`, `z80_sfx_request`, `z80_sfx_rate`, `z80_sfx_bank`, `z80_sfx_priority` | DAC sample mailbox: address low, address high \| $80, request (0 = new), rate, bank, priority |
 | $00C4 | `z80_dac_priority` | Priority of the playing sample ($FF = none); a request needs an equal or lower value |
 | $00C5 | `FmPatchRegisters` | The 26 YM2612 registers of a patch, in patch byte order, 0-terminated |
 | $00E0 | `UpdateFmChannels` / `CheckSfxRequest` | Writes the 6 slots, then takes a pending DAC request |

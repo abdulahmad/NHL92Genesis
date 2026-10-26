@@ -20,7 +20,7 @@ It builds retail and Rev A and compares each with its ROM (`nhl92retail.bin` and
 
 ## 3. sound.asm
 
-- Data the driver reads is written as `label-p_music_vblank` (the offsets `Sound_WriteYM2612` takes are distances from `p_music_vblank`), not as numbers.
+- Data the driver reads is written as `label-p_music_vblank` (the offsets `Sound_RequestDacSample` takes are distances from `p_music_vblank`), not as numbers.
 - New names follow the later games' scheme: a descriptive name that is not already used for something else. Record a rename in the pull request.
 - Comments say what the code does. Describe the instructions when the purpose is not clear, or write "probably"; do not guess.
 

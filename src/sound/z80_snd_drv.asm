@@ -11,9 +11,9 @@
 ;   - Plays one 8-bit PCM sample at a time on the YM2612 DAC (channel 6),
 ;     reading it straight out of 68000 ROM through the Z80 bank window
 ;     ($8000-$FFFF). The 68000 requests a sample through the SFX mailbox at
-;     $00BE-$00C3 (Sound_WriteYM2612 on the 68000 side).
+;     $00BE-$00C3 (Sound_RequestDacSample on the 68000 side).
 ;   - Between DAC bytes, when the 68000 has posted a new music/SFX update
-;     (z80_audio_update_flag = 0), writes the six FM channel slots of
+;     (z80_audio_update_flag = 0), checks the mailbox and writes the six FM channel slots of
 ;     z80_channel_data_buffer to the YM2612: patch load, key on/off,
 ;     frequency, carrier total level.
 ;   - It never writes the PSG and never reads the YM2612 status register.
@@ -26,9 +26,9 @@
 ; z80_bank_number) because other code writes to them.
 ;
 ; Shared RAM used by the 68000 (names as in src/sound/sound.asm):
-;   $00BE-$00C3  z80_sfxparam1 .. z80_sfxparam5   SFX (DAC sample) mailbox
+;   $00BE-$00C3  z80_sfx_addr_low .. z80_sfx_priority  DAC sample mailbox
 ;   $0273-$02A2  z80_channel_data_buffer          6 x 8-byte FM channel slots
-;   $02A3        z80_audio_update_flag            0 = new slot data to process
+;   $02A3        z80_audio_update_flag            0 = new slot data / SFX request, 1 = none
 ;   $02A5-       z80_fm_patches                   FM patches, 32 bytes each
 ;                (68000: Z80_Program_Code+$2A5, instrument command $80)
 ;
@@ -80,7 +80,7 @@ NO_CHANGE           EQU $FF     ; Slot fields with bit 7 set mean "nothing to do
 z80slot_patch_flag      EQU 0   ; Bit 7 clear: load the patch at offset_high/low
 z80slot_offset_high     EQU 1   ; Z80 address of the patch, high byte
 z80slot_offset_low      EQU 2   ; Z80 address of the patch, low byte
-z80slot_keyon           EQU 3   ; Bit 7 clear: key event; bit 0 set = key on, clear = key off
+z80slot_keyon           EQU 3   ; Bit 7 clear: key event; 1 = key on (retrigger), 0 = key off
 z80slot_freq_update     EQU 4   ; Bit 7 clear: write coarse/fine frequency
 z80slot_coarse_freq     EQU 5   ; Value for YM_FNUM_HIGH (block + fnum high)
 z80slot_fine_freq       EQU 6   ; Value for YM_FNUM_LOW
@@ -149,7 +149,7 @@ ServiceFmUpdate:
         ld      (z80_audio_update_flag), a ; Mark the update as done
 
 ; Delay between DAC bytes: the operand is the sample rate value the 68000
-; sends in z80_sfxparam3 ($C1), copied here by CheckSfxRequest.
+; sends in z80_sfx_rate ($C1), copied here by CheckSfxRequest.
 DacRateDelay:
         ld      b, $19                  ; Operand = z80_dac_rate (retail initial value $19)
 z80_dac_rate        EQU DacRateDelay+1
@@ -204,16 +204,16 @@ z80_dac_start_addr_low  EQU DacStartSample_load_addr_low+1
         db      0, 0                    ; $00BC-$00BD: unused
 
 ; =============================================================================
-; $00BE: SFX (DAC sample) mailbox, written by the 68000 (p_music_vblank_fn, from
-; the 6 bytes Sound_WriteYM2612 leaves at z80_write_buffer). Names as in
-; sound.asm; the meaning is in each comment. Initial values are the retail bytes.
+; $00BE: DAC sample mailbox, written by the 68000 (p_music_vblank_fn copies
+; the sfx_req_* bytes that Sound_RequestDacSample builds). Same names as
+; sound.asm. Initial values are the retail bytes.
 ; =============================================================================
-z80_sfxparam1:          db  $00     ; $BE: sample address low byte (68000 address bits 0-7)
-z80_sfx_control_ram:    db  $00     ; $BF: sample address high byte | $80 (window address bits 8-15)
-z80_sfxparam2:          db  $FF     ; $C0: request flag: 0 = new request, $FF = none / taken
-z80_sfxparam3:          db  $00     ; $C1: sample rate (delay loop count -> z80_dac_rate)
-z80_sfxparam4:          db  $00     ; $C2: bank (68000 address bits 15-23 -> z80_dac_start_bank)
-z80_sfxparam5:          db  $00     ; $C3: priority of the request (lower value wins)
+z80_sfx_addr_low:       db  $00     ; $BE: sample address low byte (68000 address bits 0-7)
+z80_sfx_addr_high:      db  $00     ; $BF: sample address high byte | $80 (window address bits 8-15)
+z80_sfx_request:        db  $FF     ; $C0: 0 = new request; set to $FF when taken or refused
+z80_sfx_rate:           db  $00     ; $C1: sample rate: delay loop count -> z80_dac_rate (higher = slower)
+z80_sfx_bank:           db  $00     ; $C2: bank (68000 address bits 15-23 -> z80_dac_start_bank)
+z80_sfx_priority:       db  $00     ; $C3: priority of the request (lower wins, equal replaces)
 z80_dac_priority:       db  $FF     ; $C4: priority of the sample playing, $FF = none
 
 ; =============================================================================
@@ -261,34 +261,34 @@ UpdateFmChannels:
 ; CheckSfxRequest: take a pending DAC sample request if its priority is
 ; equal to or better (lower) than the sample playing.
 CheckSfxRequest:
-        ld      a, (z80_sfxparam2)
+        ld      a, (z80_sfx_request)
         or      a
         jr      nz, CheckSfxRequest_done               ; No request
         ld      a, (z80_dac_priority)
         ld      b, a
-        ld      a, (z80_sfxparam5)      ; Priority of the request
+        ld      a, (z80_sfx_priority)      ; Priority of the request
         cp      b
         jr      z, CheckSfxRequest_accept              ; Same priority: replace
         jr      nc, CheckSfxRequest_reject             ; Higher number than the playing one: refuse
 CheckSfxRequest_accept:
         ld      (z80_dac_priority), a
-        ld      a, (z80_sfxparam2)      ; 0
+        ld      a, (z80_sfx_request)      ; 0
         ld      (z80_dac_state), a      ; DAC_STATE_START
         ld      a, NO_CHANGE
-        ld      (z80_sfxparam2), a      ; Request taken
-        ld      a, (z80_sfxparam4)
+        ld      (z80_sfx_request), a      ; Request taken
+        ld      a, (z80_sfx_bank)
         ld      (z80_dac_start_bank), a
-        ld      a, (z80_sfxparam1)
+        ld      a, (z80_sfx_addr_low)
         ld      (z80_dac_start_addr_low), a
-        ld      a, (z80_sfx_control_ram)
+        ld      a, (z80_sfx_addr_high)
         ld      (z80_dac_start_addr_high), a
-        ld      a, (z80_sfxparam3)
+        ld      a, (z80_sfx_rate)
         ld      (z80_dac_rate), a
 CheckSfxRequest_done:
         ret
 CheckSfxRequest_reject:
         ld      a, NO_CHANGE
-        ld      (z80_sfxparam2), a      ; Drop the request
+        ld      (z80_sfx_request), a      ; Drop the request
         ret
 
 ; =============================================================================
@@ -511,7 +511,7 @@ UnusedDacWriteIY_done:
 
 ; =============================================================================
 ; $0273: z80_channel_data_buffer: 6 FM channel slots (z80slot_* layout),
-; copied by the 68000 from $FFFFFFB6 (48 bytes) on each update. The initial
+; copied by the 68000 from ws_z80_buffer ($FFFFFFB6, 48 bytes) when slots change. The initial
 ; values are the retail bytes; the 68000 overwrites them on its first update
 ; (they look like leftover build-time data, meaning unclear).
 ; =============================================================================
@@ -524,8 +524,8 @@ z80_channel_data_buffer:
         db      $FF, $02, $C5, $FF, $FF, $00, $00, $FF  ; Slot 5: key code 6 (FM 6)
 
 z80_audio_update_flag:
-        db      $00     ; $02A3: 68000 writes 0 when the slots hold new data (or 1
-                        ; for none); the driver sets 1 once it has written them
+        db      $00     ; $02A3: 68000 writes 0 when the slots hold new data or an
+                        ; SFX request was posted, 1 for none; the driver sets 1 when done
 z80_dac_state:
         db      DAC_STATE_IDLE ; $02A4: DAC_STATE_START / _PLAYING / _IDLE
 
