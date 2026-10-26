@@ -49,7 +49,7 @@ const paint = (t) => t
 
 let steps = 0;
 let n = 0;
-// Each step is two lines: "[n/6] <step>  <description>", then the result under the description.
+// Each step is two lines: "[n/7] <step>  <description>", then the result under the description.
 // In a colour terminal the step line shows a spinner and a yellow step name while it runs, and is
 // redrawn with a green check or a red cross when it ends (cut to the terminal width so it never
 // wraps). Otherwise both lines are printed once, after the step.
@@ -57,6 +57,7 @@ const ROMNAME = { retail: 'retail', reva: 'Rev A', dev: 'retail or Rev A' }[mode
 const ABOUT = {
     prebuild: `check the ${only ? 'retail or Rev A' : ROMNAME} ROM and extract graphics/sound assets into Extracted/`,
     logo: 'SNASM68k builds the EA logo intro, then its opcodes are patched',
+    z80: 'asm80 builds the Z80 sound driver from src/sound/z80_snd_drv.asm and checks it against the ROM bytes',
     sound: 'SNASM68k builds the sound driver and music, then its opcodes are patched',
     assemble: 'SNASM68k turns src/hockey.asm (with the logo and sound) into a raw ROM image',
     fixopcodes: "patch the instructions where SNASM picks a different encoding than EA's original assembler",
@@ -132,6 +133,30 @@ function run(cmd, argv, opts = {}) {
 }
 const node = (script, argv) => run(process.execPath, [path.join(__dirname, script), ...argv]);
 
+// The Z80 sound driver: asm80 (npm devDependency) assembles src/sound/z80_snd_drv.asm into obj/z80_snd_drv.bin,
+// which sound.asm includes; the result must equal the bytes extracted from the ROM ($116A6-$11C3D).
+async function buildZ80() {
+    begin('z80');
+    const src = path.join(ROOT, 'src', 'sound', 'z80_snd_drv.asm');
+    const out = path.join(OBJ, 'z80_snd_drv.bin');
+    let asm80;
+    try { asm80 = require.resolve('asm80/asm80.js'); } catch (e) { fail('z80', 'asm80 is not installed, run npm i'); }
+    try { fs.rmSync(out, { force: true }); } catch (e) { /* rebuilt below */ }
+    // asm80 writes the output (and its .lst) relative to the source folder.
+    const r = await run(process.execPath, [asm80, '-m', 'Z80', '-t', 'bin', '-o', path.relative(path.dirname(src), out), rel(src)]);
+    fs.writeFileSync(path.join(OBJ, 'Build_z80_snd_drv.log'), r.out, 'latin1');
+    if (r.status !== 0 || !fs.existsSync(out) || /ERROR/.test(r.out)) fail('z80', `asm80 failed, see ${rel(path.join(OBJ, 'Build_z80_snd_drv.log'))}`, r.out.split(/\r?\n/).slice(-12).join('\n'));
+    detail(r.out);
+    const built = fs.readFileSync(out);
+    const ref = fs.readFileSync(path.join(ROOT, 'Extracted', 'Sound', 'z80_snd_drv.bin'));
+    if (!built.equals(ref)) {
+        let i = 0;
+        while (i < built.length && i < ref.length && built[i] === ref[i]) i++;
+        fail('z80', `${rel(out)} (${built.length} bytes) differs from the ROM bytes (${ref.length} bytes) at Z80 $${i.toString(16).toUpperCase()}`, null, 'MISMATCH');
+    }
+    step('z80', `MATCH ${built.length} bytes == ROM $116A6-$11C3D -> ${rel(out)}`);
+}
+
 // SNASM68k with the options EA's build matched, directly on Windows, under wine elsewhere.
 // src and outputs are relative to src/ (backslashes, as the assembler expects).
 async function assemble(name, src, outBase, binExt, rev, checksum) {
@@ -193,7 +218,7 @@ async function subBuild(name, src, base, ext, rev, checksum) {
         console.log(c.green('CLEAN'));
         return;
     }
-    steps = only ? 2 : 6;
+    steps = only === 'logo' ? 2 : only === 'sound' ? 3 : 7;
     const rev = mode.rev;
     const checksum = mode.checksum;
     fs.mkdirSync(OBJ, { recursive: true });
@@ -209,24 +234,25 @@ async function subBuild(name, src, base, ext, rev, checksum) {
         detail(r.out);
     }
 
-    // 2-3. EA logo and sound driver, included by the main ROM from output/<mode>/obj/.
+    // 2-4. EA logo, Z80 sound driver and 68000 sound driver, included by the main ROM from output/<mode>/obj/.
     if (only !== 'sound') await subBuild('logo', 'EALogo.asm', 'EALogo', '.bin', rev, checksum);
+    if (only !== 'logo') await buildZ80();
     if (only !== 'logo') await subBuild('sound', 'sound\\sound.asm', 'Hockey', '.snd', rev, checksum);
     if (only) return;
 
-    // 4. assemble: the main ROM.
+    // 5. assemble: the main ROM.
     begin('assemble');
     const a = await assemble('assemble', 'hockey.asm', `..\\output\\${modeName}\\obj\\nhl92`, '.bin', rev, checksum);
     step('assemble', `${a.errors} errors, ${a.warnings} warnings, ${a.lines} lines in ${a.secs}s (REV=${rev} CHECKSUM=${checksum}) -> ${rel(a.bin)}`);
 
-    // 5. fixopcodes: the result is output/<mode>/nhl92.bin.
+    // 6. fixopcodes: the result is output/<mode>/nhl92.bin.
     begin('fixopcodes');
     const f = await fixopcodes('fixopcodes', a);
     const final = path.join(OUT, ROM);
     fs.renameSync(f.fixed, final);
     step('fixopcodes', `${f.count} opcodes fixed${f.skipped ? `, ${f.skipped} skipped` : ''} -> ${rel(final)}`);
 
-    // 6. verify against the reference ROM.
+    // 7. verify against the reference ROM.
     if (!mode.ref) { step('verify', `${rel(final)} not verified (dev build)`); return; }
     begin('verify');
     const r = await node('verifyRom.js', [final, mode.ref]);

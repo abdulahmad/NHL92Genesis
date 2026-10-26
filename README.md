@@ -12,6 +12,7 @@ Built on the work that McMarkis (https://github.com/Mhopkinsinc/NHLHockey) did t
 - Script to generate CRC16 Checksum used in ROM Header & CRC32 Checksum used in Validation code
 - EA Logo code is disassembled and buildable
 - Sound Driver code is disassembled and buildable
+- Z80 sound driver is real, commented Z80 source (`src/sound/z80_snd_drv.asm`), assembled with asm80 and checked byte-for-byte against the ROM
 - Script to extract assets from retail rom (Graphics, PCM audio, FM audio, z80 snd driver), run automatically by the build when `Extracted/` is missing or incomplete
 - Requires retail ROM
 
@@ -19,7 +20,7 @@ Built on the work that McMarkis (https://github.com/Mhopkinsinc/NHLHockey) did t
 
 1. Install node from https://nodejs.org/en/download if it isn't already installed on your machine
 
-2. In the `NHL92Genesis` folder, run `npm i`
+2. In the `NHL92Genesis` folder, run `npm i`. This also installs [asm80](https://www.npmjs.com/package/asm80) (pinned in `package.json`, MIT, pure JavaScript), the Z80 assembler used for the Z80 sound driver; nothing else needs installing for it on Windows, Linux or macOS. The 68000 assembler (`assembler/Assembler.exe`, SNASM68k) runs directly on Windows and under wine on Linux/macOS.
 
 3. Copy your NHL Hockey (NHL 92) Sega Genesis ROM dumps into the `NHL92Genesis` folder (ROMs are not included in the repo):
 
@@ -30,7 +31,7 @@ Built on the work that McMarkis (https://github.com/Mhopkinsinc/NHLHockey) did t
 
     The assets can be extracted from either ROM (both give identical assets). The retail build is verified against the retail ROM and the Rev A build against the Rev A ROM; the dev build needs either one.
 
-4. Build one of 3 versions. Everything runs through `tools/build.js` (node; on Windows it runs the assembler directly, on Linux/macOS under wine). Each build first runs `tools/prebuild.js`, which checks the ROM(s) by SHA-1 and size (and stops with the expected file name, SHA-1 and size if one is missing or wrong), then extracts the assets into `Extracted/` from that ROM with `tools/extractAssets92.js` if they are missing or incomplete. It then builds the EA logo (`output/<mode>/obj/modified_EALogo.bin`) and the sound driver (`output/<mode>/obj/modified_Hockey.snd`) before the main ROM.
+4. Build one of 3 versions. Everything runs through `tools/build.js` (node; on Windows it runs the assembler directly, on Linux/macOS under wine). Each build first runs `tools/prebuild.js`, which checks the ROM(s) by SHA-1 and size (and stops with the expected file name, SHA-1 and size if one is missing or wrong), then extracts the assets into `Extracted/` from that ROM with `tools/extractAssets92.js` if they are missing or incomplete. It then builds the EA logo (`output/<mode>/obj/modified_EALogo.bin`), the Z80 sound driver (`output/<mode>/obj/z80_snd_drv.bin`) and the sound driver (`output/<mode>/obj/modified_Hockey.snd`) before the main ROM.
 
     - `npm run build:retail`: the `Retail` ROM, with the retail checksum validation check. Verified against `nhl92retail.bin`
     - `npm run build:reva`: the `Rev A` ROM, with the checksum validation check. Verified against `nhl92retailRevA.bin`
@@ -40,7 +41,7 @@ Built on the work that McMarkis (https://github.com/Mhopkinsinc/NHLHockey) did t
 
 Other scripts:
 - `npm run assets`: ROM check and asset extraction only (`npm run extractassets` runs the extractor directly)
-- `npm run build:logo` / `npm run build:sound`: build only the EA logo or the sound driver
+- `npm run build:logo` / `npm run build:sound`: build only the EA logo or the sound driver (`build:sound` also assembles the Z80 driver)
 - `npm run checksum`: print the header and validation checksums of `output/retail/nhl92.bin`, or of the ROM given as argument (`tools/generateChecksum.js`)
 - `npm run clean`: delete `output/` and `Extracted/` (re-extracted by the next build)
 - `tools/verify_all.sh`: extracts fresh and builds retail and Rev A, printing MATCH for each
@@ -54,10 +55,11 @@ All the build tools are in `tools/`.
 
 1. **prebuild**: check the retail (or Rev A) ROM and extract graphics/sound assets into `Extracted/`.
 2. **logo**: SNASM68k builds the EA logo intro (`output/<mode>/obj/modified_EALogo.bin`), then its opcodes are patched.
-3. **sound**: SNASM68k builds the sound driver and music (`output/<mode>/obj/modified_Hockey.snd`), then its opcodes are patched.
-4. **assemble**: SNASM68k turns `src/hockey.asm`, with the logo and sound, into a raw ROM image.
-5. **fixopcodes**: patch the instructions where SNASM picks a different encoding than EA's original assembler.
-6. **verify**: compare byte-for-byte with the retail or Rev A ROM. Dev builds are not verified.
+3. **z80**: asm80 assembles the Z80 sound driver `src/sound/z80_snd_drv.asm` into `output/<mode>/obj/z80_snd_drv.bin` (listing `z80_snd_drv.lst` next to it) and checks it byte-for-byte against the driver bytes extracted from the ROM ($116A6-$11C3D, `Extracted/Sound/z80_snd_drv.bin`). `src/sound/sound.asm` includes this assembled file at `Z80_Program_Code`.
+4. **sound**: SNASM68k builds the sound driver and music (`output/<mode>/obj/modified_Hockey.snd`), then its opcodes are patched.
+5. **assemble**: SNASM68k turns `src/hockey.asm`, with the logo and sound, into a raw ROM image.
+6. **fixopcodes**: patch the instructions where SNASM picks a different encoding than EA's original assembler.
+7. **verify**: compare byte-for-byte with the retail or Rev A ROM. Dev builds are not verified.
 
 In a terminal, each step turns a spinner while it runs and is redrawn with a green check or a red cross when it ends. Values are bold, `OK` and `MATCH` are green, and failures are red. The colours are off when the output is not a terminal, with `NO_COLOR` set, or with `--no-color`.
 

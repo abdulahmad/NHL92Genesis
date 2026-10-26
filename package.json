@@ -15,5 +15,8 @@
     "checksum": "node tools/generateChecksum.js",
     "clean": "node tools/build.js --clean"
   },
-  "license": "ISC"
+  "license": "ISC",
+  "devDependencies": {
+    "asm80": "1.11.14"
+  }
 }
