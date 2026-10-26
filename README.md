@@ -13,7 +13,7 @@ Built on the work that McMarkis (https://github.com/Mhopkinsinc/NHLHockey) did t
 - EA Logo code is disassembled and buildable
 - Sound Driver code is disassembled and buildable
 - Z80 sound driver is real, commented Z80 source (`src/sound/z80_snd_drv.asm`), assembled with asm80 and checked byte-for-byte against the ROM
-- Script to extract assets from retail rom (Graphics, PCM audio, FM audio, z80 snd driver), run automatically by the build when `Extracted/` is missing or incomplete
+- Script to extract assets from retail rom (Graphics, PCM audio, FM audio, and the Z80 driver bytes the build checks its assembled driver against), run automatically by the build when `Extracted/` is missing or incomplete
 - Requires retail ROM
 
 ## Instructions
@@ -55,7 +55,7 @@ All the build tools are in `tools/`.
 
 1. **prebuild**: check the retail (or Rev A) ROM and extract graphics/sound assets into `Extracted/`.
 2. **logo**: SNASM68k builds the EA logo intro (`output/<mode>/obj/modified_EALogo.bin`), then its opcodes are patched.
-3. **z80**: asm80 assembles the Z80 sound driver `src/sound/z80_snd_drv.asm` into `output/<mode>/obj/z80_snd_drv.bin` (listing `z80_snd_drv.lst` next to it) and checks it byte-for-byte against the driver bytes extracted from the ROM ($116A6-$11C3D, `Extracted/Sound/z80_snd_drv.bin`). `src/sound/sound.asm` includes this assembled file at `Z80_Program_Code`.
+3. **z80**: asm80 assembles the Z80 sound driver `src/sound/z80_snd_drv.asm` into `output/<mode>/obj/z80_snd_drv.bin` (asm80 writes its listing `z80_snd_drv.lst` next to it) and checks it byte-for-byte against the retail driver bytes ($116A6-$11C3D), which the prebuild extracts to `Extracted/Sound/z80_snd_drv.bin` only for this check. `src/sound/sound.asm` includes this assembled file at `Z80_Program_Code`.
 4. **sound**: SNASM68k builds the sound driver and music (`output/<mode>/obj/modified_Hockey.snd`), then its opcodes are patched.
 5. **assemble**: SNASM68k turns `src/hockey.asm`, with the logo and sound, into a raw ROM image.
 6. **fixopcodes**: patch the instructions where SNASM picks a different encoding than EA's original assembler.

@@ -45,16 +45,17 @@ SngEOP            EQU 0  ; End of Period song
 SngEOG            EQU 3  ; End of Game song
 SngPO             EQU 4  ; Playoffs music
 
-; Z80 Memory Map
+; Z80 Memory Map (68000 view of Z80 RAM; same names as src/sound/z80_snd_drv.asm)
 z80_ram = $A00000
-z80_sfxparam1 = $A000BE
-z80_sfx_control_ram = $A000BF
-z80_sfxparam2 = $A000C0
-z80_sfxparam3 = $A000C1
-z80_sfxparam4 = $A000C2
-z80_sfxparam5 = $A000C3
-z80_channel_data_buffer_RAM = $A00273
-z80_audio_update_flag = $A002A3
+; DAC sample mailbox, filled from the sfx_req_* bytes below (6 bytes, written in the order $BF, $BE, $C0-$C3)
+z80_sfx_addr_low = $A000BE      ; Sample address bits 0-7
+z80_sfx_addr_high = $A000BF     ; Sample address bits 8-14 | $80 (address in the Z80 bank window)
+z80_sfx_request = $A000C0       ; 0 = new request; the Z80 sets $FF when it takes or refuses it
+z80_sfx_rate = $A000C1          ; Sample rate: delay loop count between DAC bytes (higher = slower)
+z80_sfx_bank = $A000C2          ; Sample address bits 15-23 (Z80 bank number)
+z80_sfx_priority = $A000C3      ; Priority: lower wins; equal replaces the playing sample
+z80_channel_data_buffer = $A00273 ; 6 FM channel slots x 8 bytes (z80slot_*), copied from ws_z80_buffer
+z80_audio_update_flag = $A002A3 ; 0 = Z80 has new slot data / an SFX request to process, 1 = nothing new
 IO_Z80RES           EQU $A11200      ; Z80 reset port
 IO_Z80BUS           EQU $A11100      ; Z80 bus request port
 
@@ -71,12 +72,13 @@ g_Channel2Volume = $FFFFFFC9
 g_Channel3Volume = $FFFFFFD1
 g_Channel4Volume = $FFFFFFD9
 g_Channel5Volume = $FFFFFFE1
-z80_write_buffer = $FFFFFFE6
-z80_update_flag = $FFFFFFE8
-ym2612_data_low = $FFFFFFE9
-ym2612_reg_part = $FFFFFFEA
-ym2612_data_high = $FFFFFFEB
-z80_write_pending = $FFFFFFEC
+; DAC sample request, built by Sound_RequestDacSample and copied to the Z80 mailbox by p_music_vblank_fn
+sfx_req_addr = $FFFFFFE6        ; Word: sample address bits 0-14 | $8000 (-> z80_sfx_addr_high, z80_sfx_addr_low)
+sfx_req_request = $FFFFFFE8     ; Byte: 0 (-> z80_sfx_request)
+sfx_req_rate = $FFFFFFE9        ; Byte: sample rate (-> z80_sfx_rate)
+sfx_req_bank = $FFFFFFEA        ; Byte: sample address bits 15-23 (-> z80_sfx_bank)
+sfx_req_priority = $FFFFFFEB    ; Byte: priority (-> z80_sfx_priority)
+sfx_req_pending = $FFFFFFEC     ; Byte: 1 = a request waits to be copied to the Z80
 g_MusicPauseFlag = $FFFFFFED
 g_AudioStopFlag     EQU $FFFFFFF4      ; Byte: Flag to stop all audio (1 = stop)
 
@@ -85,7 +87,7 @@ g_SoundWorkspace    EQU $FFFFFDFC    ; Base address of sound workspace in 68000 
 g_CurrentTrackID    EQU $FFFFFFB2    ; Long: Current music track ID
 g_MusicStopFlag     EQU $FFFFFFF3    ; Byte: Flag to stop music (1 = stop)
 g_MusicInitFlag     EQU $FFFFFFF5    ; Byte: Flag to initialize music (1 = init)
-g_AudioUpdateFlag   EQU $FFFFFFF9    ; Byte: Flag to update Z80 audio data (1 = update)
+g_AudioUpdateFlag   EQU $FFFFFFF9    ; Byte: 0 = slots changed, send ws_z80_buffer to the Z80; 1 = no change (-> z80_audio_update_flag)
 
 ; Channel Structure (size $48 bytes)
 channel_flags           EQU 0    ; Byte: Flags (bit 1: modulation, bit 2: ?, bit 3: active)
@@ -125,16 +127,19 @@ ws_music_flag           EQU 0    ; Byte: Music enable flag ($FF = on)
 ws_tempo                EQU 2    ; Byte: Tempo multiplier / base duration (from the track table)
 ws_num_channels         EQU 4    ; Byte: Number of channels to process (from the track table)
 ws_channels             EQU 6    ; First channel structure (6 x CHANNEL_SIZE)
-ws_z80_buffer           EQU $1BA ; Z80 output buffer, 8 bytes per channel
+ws_z80_buffer           EQU $1BA ; Z80 output buffer ($FFFFFFB6), 6 slots x 8 bytes, copied to z80_channel_data_buffer
 ws_state_flag           EQU $1F1 ; Byte: State flag (pause / init complete?)
 
-; Z80 output buffer slot (8 bytes per channel, at ws_z80_buffer)
-z80slot_offset_high     EQU 1    ; Byte: High byte of data offset
-z80slot_offset_low      EQU 2    ; Byte: Low byte of data offset
-z80slot_keyon           EQU 3    ; Byte: Key-on flag
-z80slot_freq_update     EQU 4    ; Byte: Frequency update flag
-z80slot_coarse_freq     EQU 5    ; Byte: Coarse frequency + octave
-z80slot_fine_freq       EQU 6    ; Byte: Fine frequency
+; Z80 output buffer slot (8 bytes per channel, at ws_z80_buffer; same layout and names as z80_snd_drv.asm).
+; A field whose flag byte has bit 7 set means "no change"; the Z80 sets it back to $FF once written.
+z80slot_patch_flag      EQU 0    ; Byte: 0 = load the patch at offset_high/low, $FF = no change
+z80slot_offset_high     EQU 1    ; Byte: Z80 address of the patch, high byte
+z80slot_offset_low      EQU 2    ; Byte: Z80 address of the patch, low byte
+z80slot_keyon           EQU 3    ; Byte: 0 = key off, 1 = key on (retrigger), $FF = no change
+z80slot_freq_update     EQU 4    ; Byte: 0 = write coarse/fine frequency, $FF = no change
+z80slot_coarse_freq     EQU 5    ; Byte: YM2612 $A4 value (block/octave + frequency high bits)
+z80slot_fine_freq       EQU 6    ; Byte: YM2612 $A0 value (frequency low byte)
+z80slot_volume          EQU 7    ; Byte: YM2612 $4C operator 4 total level, $FF = no change
 
 ; Sound Code Entry Points
 p_music_vblank:               ; (VBlank handler)
@@ -351,19 +356,19 @@ Sound_ProcessMusicChannels: ; Processes all music channels, updating their state
     bra.s   .parse_track_command        ; Continue parsing.
 .handle_instrument                      ; Handle $80: Set instrument.
     move.b  (a1)+,d0                    ; Read instrument ID.
-    move.l  #$2A5,d1                    ; Base offset for instrument data in Z80 program.
-    lea     Z80_Program_Code(pc),a5     ; Load Z80 code base (instrument patches here).
+    move.l  #$2A5,d1                    ; Z80 address of the FM patches (z80_fm_patches).
+    lea     Z80_Program_Code(pc),a5     ; ROM copy of the Z80 program, to read the patch from here.
     adda.l  d1,a5                       ; Add base to a5.
-    lsl.w   #5,d0                       ; Multiply ID by 32 (instrument size?).
+    lsl.w   #5,d0                       ; Multiply ID by 32 (patch size).
     add.l   d0,d1                       ; Add to d1 (full offset).
     adda.l  d0,a5                       ; Add to a5 (pointer to instrument data).
     move.w  d1,d0                       ; Copy offset to d0.
     move.b  d0,z80slot_offset_low(a6)                    ; Store low byte of offset in Z80 slot +2.
     lsr.w   #8,d1                       ; Shift high byte.
     move.b  d1,z80slot_offset_high(a6)                    ; Store high byte in Z80 slot +1.
-    move.b  #0,(a6)                     ; Clear Z80 slot +0 (instrument change flag?).
+    move.b  #0,z80slot_patch_flag(a6)   ; Tell the Z80 to load the patch.
     move.b  #0,(g_AudioUpdateFlag).l    ; Set update flag.
-    move.b  $1A(a5),channel_note_offset(a0)             ; Store byte from instrument +0x1A (octave shift?) to channel +0x24.
+    move.b  $1A(a5),channel_note_offset(a0)             ; Patch byte $1A: note offset (signed), added to each note.
     bra.w   .parse_track_command        ; Continue parsing.
 .set_channel_sustain_flag               ; Handle $83: Set sustain flag (no key-off at note end).
     bset    #2,(a0)                     ; Set bit 2 in channel flags.
@@ -461,7 +466,7 @@ Sound_ProcessMusicChannels: ; Processes all music channels, updating their state
     move.b  channel_note(a0),d0                ; Get note
     adda.l  d0,a2                   ; Index table
     move.b  (a2),d2                 ; Read frequency byte
-    move.b  d2,z80slot_coarse_freq(a6)                ; Store in Z80 slot +5 (coarse freq?)
+    move.b  d2,z80slot_coarse_freq(a6)                ; Store block + frequency high bits
     move.b  d2,d3                   ; Copy
     andi.b  #7,d2                   ; Mask low 3 bits (fine freq?)
     move.b  d2,channel_freq_low(a0)              ; Store channel fine freq base
@@ -471,8 +476,8 @@ Sound_ProcessMusicChannels: ; Processes all music channels, updating their state
     adda.l  d0,a2                   ; Index
     move.b  (a2),d2                 ; Read octave value
     move.b  d2,channel_octave(a0)              ; Store in channel
-    move.b  d2,z80slot_fine_freq(a6)                ; Store in Z80 slot +6 (fine freq?)
-    move.b  #0,z80slot_freq_update(a6)                ; Clear Z80 slot +4 (freq update flag?)
+    move.b  d2,z80slot_fine_freq(a6)                ; Store frequency low byte
+    move.b  #0,z80slot_freq_update(a6)                ; Tell the Z80 to write the frequency
     move.b  #0,(g_AudioUpdateFlag).l ; Set update flag
     btst    #2,(a0)                 ; Test sustain flag
     bne.s   .finish_channel         ; If set, no key-on/envelope reset
@@ -545,41 +550,41 @@ Sound_ResetChannelVolumes:
 p_music_vblank_fn:
     movem.l d0-d7/a0-a6,-(sp)       ; Save all registers
     moveq   #5,d0                   ; Set loop counter for 6 channels
-    movea.l #$FFFFFFB6,a1           ; Load address for channel data
-    move.b  #$FF,d1                 ; Set value to $FF for muting
+    movea.l #$FFFFFFB6,a1           ; ws_z80_buffer (g_SoundWorkspace+ws_z80_buffer)
+    move.b  #$FF,d1                 ; $FF = "no change" in a slot flag byte
 .mute_channels
-    move.b  d1,(a1)                 ; Mute channel flag
-    move.b  d1,3(a1)                ; Mute another byte
-    move.b  d1,4(a1)                ; Mute another byte
-    move.b  d1,7(a1)                ; Mute another byte
+    move.b  d1,z80slot_patch_flag(a1) ; Reset each slot's flag bytes so only this
+    move.b  d1,z80slot_keyon(a1)    ; frame's changes are sent
+    move.b  d1,z80slot_freq_update(a1)
+    move.b  d1,z80slot_volume(a1)
     addq.l  #8,a1                   ; Advance to next channel
     dbf     d0,.mute_channels       ; Loop for all channels
-    move.b  #1,(g_AudioUpdateFlag).l ; Set audio update flag to 1
+    move.b  #1,(g_AudioUpdateFlag).l ; 1 = nothing new yet (the update below sets 0 on a change)
     bsr.w   Sound_UpdateMusicState  ; Update music state
     move.b  (g_AudioUpdateFlag).l,d7 ; Load update flag into d7
-    movea.l #$FFFFFFE6,a1           ; Load Z80 write area address
+    movea.l #$FFFFFFE6,a1           ; sfx_req_addr: the DAC sample request
     move.w  #$100,(IO_Z80BUS).l     ; Request Z80 bus
-    cmp.b   #1,d7                   ; Check if update flag is 1
-    beq.s   .write_z80              ; If yes, write to Z80
-    move.w  #$2F,d0                 ; Set copy loop counter ($30 bytes?)
-    movea.l #z80_channel_data_buffer_RAM,a0 ; Load source buffer
-    movea.l #$FFFFFFB6,a1           ; Load source address
+    cmp.b   #1,d7                   ; 1 = no slot changes
+    beq.s   .write_z80              ; Then skip the slot copy
+    move.w  #$2F,d0                 ; Copy $30 bytes (6 slots x 8)
+    movea.l #z80_channel_data_buffer,a0 ; Destination: Z80 slot buffer
+    movea.l #$FFFFFFB6,a1           ; Source: ws_z80_buffer
 .copy_to_z80
     move.b  (a1)+,(a0)+             ; Copy byte to Z80 buffer
     dbf     d0,.copy_to_z80         ; Loop until done
 .write_z80
-    cmpi.b  #0,(z80_write_pending).l ; Check if Z80 write is pending
+    cmpi.b  #0,(sfx_req_pending).l ; DAC sample request waiting?
     beq.s   .release_z80            ; If not, release bus
-    move.b  (a1)+,(z80_sfx_control_RAM).l ; Write SFX control
-    move.b  (a1)+,(z80_SFXParam1).l ; Write param 1
-    move.b  (a1)+,(z80_SFXParam2).l ; Write param 2
-    move.b  (a1)+,(z80_SFXParam3).l ; Write param 3
-    move.b  (a1)+,(z80_SFXParam4).l ; Write param 4
-    move.b  (a1)+,(z80_SFXParam5).l ; Write param 5
-    move.b  #0,(z80_write_pending).l ; Clear pending flag
-    move.b  #0,d7                   ; Clear d7
+    move.b  (a1)+,(z80_sfx_addr_high).l ; Copy sfx_req_addr..sfx_req_priority
+    move.b  (a1)+,(z80_sfx_addr_low).l ; to the Z80 mailbox
+    move.b  (a1)+,(z80_sfx_request).l
+    move.b  (a1)+,(z80_sfx_rate).l
+    move.b  (a1)+,(z80_sfx_bank).l
+    move.b  (a1)+,(z80_sfx_priority).l
+    move.b  #0,(sfx_req_pending).l  ; Request sent
+    move.b  #0,d7                   ; Make the Z80 run its update pass (it checks the mailbox there)
 .release_z80
-    move.b  d7,(z80_audio_update_flag).l ; Store update flag in Z80
+    move.b  d7,(z80_audio_update_flag).l ; 0 = Z80 has work to do, 1 = nothing new
     move.w  #0,(IO_Z80BUS).l        ; Release Z80 bus
     movem.l (sp)+,d0-d7/a0-a6       ; Restore registers
     rts                             ; Return
@@ -790,168 +795,172 @@ Sound_Process_SFXChannels:
     dbf     d7,.process_effect_channel ; Loop for next channel
     rts                             ; Return
 
-; Writes data to YM2612 registers via Z80.
-Sound_WriteYM2612:
+; Requests a DAC (PCM) sample from the Z80 driver. The request is copied to the Z80
+; mailbox (z80_sfx_*) by p_music_vblank_fn at the next vblank.
+; In: d1 = sample offset from p_music_vblank, d2 = rate (delay count), d3 = priority (lower wins).
+; The Z80 starts playing at the byte after the sample address.
+Sound_RequestDacSample:
     lea     p_music_vblank(pc),a4   ; Load base
-    add.l   a4,d1                   ; Add to d1
+    add.l   a4,d1                   ; d1 = 68000 address of the sample
     move.l  d1,d0                   ; Copy
-    ori.w   #$8000,d0               ; Set bit
-    move.w  d0,(z80_write_buffer).l ; Store in buffer
+    ori.w   #$8000,d0               ; Bits 0-14 + $8000 = address in the Z80 bank window
+    move.w  d0,(sfx_req_addr).l     ; Store window address
     lsr.l   #8,d1                   ; Shift
-    lsr.l   #7,d1                   ; Shift
-    move.b  d1,(ym2612_reg_part).l  ; Store reg part
-    move.b  d1,(ym2612_reg_part).l  ; Store again
-    move.b  d2,(ym2612_data_low).l  ; Store data low
-    move.b  d3,(ym2612_data_high).l ; Store data high
-    move.b  #0,(z80_update_flag).l  ; Clear update flag
-    move.b  #1,(z80_write_pending).l ; Set pending
+    lsr.l   #7,d1                   ; d1 = address bits 15-23 = bank
+    move.b  d1,(sfx_req_bank).l     ; Store bank
+    move.b  d1,(sfx_req_bank).l     ; Stored twice (in the original)
+    move.b  d2,(sfx_req_rate).l     ; Store rate
+    move.b  d3,(sfx_req_priority).l ; Store priority
+    move.b  #0,(sfx_req_request).l  ; 0 = new request (for z80_sfx_request)
+    move.b  #1,(sfx_req_pending).l  ; Send it at the next vblank
     rts                             ; Return
 
 ; sam_hitboard1 (15): sample player hits boards 1.
 handle_sfx_sam_hitboard1:
     move.l  #sfx_sam_hitboard_pcm-p_music_vblank,d1 ; PCM sample offset
-    move.b  #$13,d2                 ; Load param
-    move.b  #1,d3                   ; Load param
-    bsr.s   Sound_WriteYM2612       ; Write to YM2612
+    move.b  #$13,d2                 ; DAC rate
+    move.b  #1,d3                   ; DAC priority
+    bsr.s   Sound_RequestDacSample   ; Request the DAC sample
     bsr.w   handle_sfx_hitboard         ; plus hitboard (6)
     rts                             ; Return
 
 ; skating3 (3): FM skating turn short.
 handle_sfx_skating3:
     move.l  #sfx_skating34_pcm-p_music_vblank,d1 ; PCM sample offset
-    move.b  #8,d2                   ; Load param
-    move.b  #1,d3                   ; Load param
-    bsr.s   Sound_WriteYM2612       ; Write to YM2612
+    move.b  #8,d2                   ; DAC rate
+    move.b  #1,d3                   ; DAC priority
+    bsr.s   Sound_RequestDacSample   ; Request the DAC sample
     rts                             ; Return
 
-; Configures YM2612 for reset or stop.
+; Stops any DAC sample: requests the 4-byte tail of sfx_sam_pass1_pcm (ends at once) at priority 0,
+; which replaces whatever is playing.
 configure_ym2612:
     move.l  #sfx_sam_hitboard_pcm-p_music_vblank-4,d1 ; 4 bytes before sfx_sam_hitboard_pcm: the end of sfx_sam_pass1_pcm
-    move.b  #$B,d2                  ; Load param
-    move.b  #0,d3                   ; Load param
-    bsr.s   Sound_WriteYM2612       ; Write to YM2612
+    move.b  #$B,d2                  ; DAC rate
+    move.b  #0,d3                   ; DAC priority
+    bsr.s   Sound_RequestDacSample   ; Request the DAC sample
     rts                             ; Return
 
 ; skating4 (4): FM skating turn short.
 handle_sfx_skating4:
     move.l  #sfx_skating34_pcm-p_music_vblank,d1 ; PCM sample offset
-    move.b  #$B,d2                  ; Load param
-    move.b  #1,d3                   ; Load param
-    bsr.w   Sound_WriteYM2612       ; Write to YM2612
+    move.b  #$B,d2                  ; DAC rate
+    move.b  #1,d3                   ; DAC priority
+    bsr.w   Sound_RequestDacSample   ; Request the DAC sample
     rts                             ; Return
 
 ; sam_hitboard2 (16): ditto at different playback rate.
 handle_sfx_sam_hitboard2:
     move.l  #sfx_sam_hitboard_pcm-p_music_vblank,d1 ; PCM sample offset
-    move.b  #$18,d2                 ; Load param
-    move.b  #1,d3                   ; Load param
-    bsr.w   Sound_WriteYM2612       ; Write to YM2612
+    move.b  #$18,d2                 ; DAC rate
+    move.b  #1,d3                   ; DAC priority
+    bsr.w   Sound_RequestDacSample   ; Request the DAC sample
     bsr.w   handle_sfx_hitboard         ; plus hitboard (6)
     rts                             ; Return
 
 ; sam_hitboard3 (17): ditto at different playback rate.
 handle_sfx_sam_hitboard3:
     move.l  #sfx_sam_hitboard_pcm-p_music_vblank,d1 ; PCM sample offset
-    move.b  #$10,d2                 ; Load param
-    move.b  #1,d3                   ; Load param
-    bsr.w   Sound_WriteYM2612       ; Write to YM2612
+    move.b  #$10,d2                 ; DAC rate
+    move.b  #1,d3                   ; DAC priority
+    bsr.w   Sound_RequestDacSample   ; Request the DAC sample
     bsr.w   handle_sfx_hitboard         ; plus hitboard (6)
     rts                             ; Return
 
 ; sam_hit1 (18): sample player hits (checks) another player 1.
 handle_sfx_sam_hit1:
     move.l  #sfx_sam_hit_pcm-p_music_vblank,d1 ; PCM sample offset
-    move.b  #$10,d2                 ; Load param
-    move.b  #1,d3                   ; Load param
-    bsr.w   Sound_WriteYM2612       ; Write to YM2612
+    move.b  #$10,d2                 ; DAC rate
+    move.b  #1,d3                   ; DAC priority
+    bsr.w   Sound_RequestDacSample   ; Request the DAC sample
     rts                             ; Return
 
 ; sam_hit2 (19): ditto at different playback rate.
 handle_sfx_sam_hit2:
     move.l  #sfx_sam_hit_pcm-p_music_vblank,d1 ; PCM sample offset
-    move.b  #$13,d2                 ; Load param
-    move.b  #1,d3                   ; Load param
-    bsr.w   Sound_WriteYM2612       ; Write to YM2612
+    move.b  #$13,d2                 ; DAC rate
+    move.b  #1,d3                   ; DAC priority
+    bsr.w   Sound_RequestDacSample   ; Request the DAC sample
     rts                             ; Return
 
 ; sam_hit3 (20): ditto at different playback rate.
 handle_sfx_sam_hit3:
     move.l  #sfx_sam_hit_pcm-p_music_vblank,d1 ; PCM sample offset
-    move.b  #$18,d2                 ; Load param
-    move.b  #1,d3                   ; Load param
-    bsr.w   Sound_WriteYM2612       ; Write to YM2612
+    move.b  #$18,d2                 ; DAC rate
+    move.b  #1,d3                   ; DAC priority
+    bsr.w   Sound_RequestDacSample   ; Request the DAC sample
     rts                             ; Return
 
 ; sam_pass1 (11): sample pass shot #1.
 handle_sfx_sam_pass1:
     move.l  #sfx_sam_pass1_pcm-p_music_vblank,d1 ; PCM sample offset
-    move.b  #$C,d2                  ; Load param
-    move.b  #2,d3                   ; Load param
-    bsr.w   Sound_WriteYM2612       ; Write to YM2612
+    move.b  #$C,d2                  ; DAC rate
+    move.b  #2,d3                   ; DAC priority
+    bsr.w   Sound_RequestDacSample   ; Request the DAC sample
     rts                             ; Return
 
 ; sam_pass2 (12): sample pass shot #2 more beef.
 handle_sfx_sam_pass2:
     move.l  #sfx_sam_pass2_pcm-p_music_vblank,d1 ; PCM sample offset
-    move.b  #$C,d2                  ; Load param
-    move.b  #2,d3                   ; Load param
-    bsr.w   Sound_WriteYM2612       ; Write to YM2612
+    move.b  #$C,d2                  ; DAC rate
+    move.b  #2,d3                   ; DAC priority
+    bsr.w   Sound_RequestDacSample   ; Request the DAC sample
     rts                             ; Return
 
 ; sam_puck2_slap (13): sample slap shot.
 handle_sfx_sam_puck2_slap:
     move.l  #sfx_sam_puck2_slap_pcm-p_music_vblank,d1 ; PCM sample offset
-    move.b  #$B,d2                  ; Load param
-    move.b  #2,d3                   ; Load param
-    bsr.w   Sound_WriteYM2612       ; Write to YM2612
+    move.b  #$B,d2                  ; DAC rate
+    move.b  #2,d3                   ; DAC priority
+    bsr.w   Sound_RequestDacSample   ; Request the DAC sample
     rts                             ; Return
 
 ; sam_punch1 (21): sample fighting punch sound.
 handle_sfx_sam_punch1:
     move.l  #sfx_sam_punch_pcm-p_music_vblank,d1 ; PCM sample offset
-    move.b  #$15,d2                 ; Load param
-    move.b  #2,d3                   ; Load param
-    bsr.w   Sound_WriteYM2612       ; Write to YM2612
+    move.b  #$15,d2                 ; DAC rate
+    move.b  #2,d3                   ; DAC priority
+    bsr.w   Sound_RequestDacSample   ; Request the DAC sample
     rts                             ; Return
 
 ; sam_punch3 (23): ditto at different playback rate.
 handle_sfx_sam_punch3:
     move.l  #sfx_sam_punch_pcm-p_music_vblank,d1 ; PCM sample offset
-    move.b  #$1F,d2                 ; Load param
-    move.b  #2,d3                   ; Load param
-    bsr.w   Sound_WriteYM2612       ; Write to YM2612
+    move.b  #$1F,d2                 ; DAC rate
+    move.b  #2,d3                   ; DAC priority
+    bsr.w   Sound_RequestDacSample   ; Request the DAC sample
     rts                             ; Return
 
 ; sam_punch2 (22): ditto at different playback rate.
 handle_sfx_sam_punch2:
     move.l  #sfx_sam_punch_pcm-p_music_vblank,d1 ; PCM sample offset
-    move.b  #$19,d2                 ; Load param
-    move.b  #2,d3                   ; Load param
-    bsr.w   Sound_WriteYM2612       ; Write to YM2612
+    move.b  #$19,d2                 ; DAC rate
+    move.b  #2,d3                   ; DAC priority
+    bsr.w   Sound_RequestDacSample   ; Request the DAC sample
     rts                             ; Return
 
 ; sam_crowdgoal (25): sample crowd cheer.
 handle_sfx_sam_crowdgoal:
     move.l  #sfx_sam_crowdgoal_pcm-p_music_vblank,d1 ; PCM sample offset
-    move.b  #$13,d2                 ; Load param
-    move.b  #0,d3                   ; Load param
-    bsr.w   Sound_WriteYM2612       ; Write to YM2612
+    move.b  #$13,d2                 ; DAC rate
+    move.b  #0,d3                   ; DAC priority
+    bsr.w   Sound_RequestDacSample   ; Request the DAC sample
     rts                             ; Return
 
 ; sam_booing (26): sample short booing.
 handle_sfx_sam_booing:
     move.l  #sfx_sam_booing_pcm-p_music_vblank,d1 ; PCM sample offset
-    move.b  #$18,d2                 ; Load param
-    move.b  #0,d3                   ; Load param
-    bsr.w   Sound_WriteYM2612       ; Write to YM2612
+    move.b  #$18,d2                 ; DAC rate
+    move.b  #0,d3                   ; DAC priority
+    bsr.w   Sound_RequestDacSample   ; Request the DAC sample
     rts                             ; Return
 
 ; oooh (31): crowd oooh (not in soundtab.doc; SFXoooh in ram.asm).
 handle_sfx_oooh:
     move.l  #sfx_oooh_pcm-p_music_vblank,d1 ; PCM sample offset
-    move.b  #$1B,d2                 ; Load param
-    move.b  #0,d3                   ; Load param
-    bsr.w   Sound_WriteYM2612       ; Write to YM2612
+    move.b  #$1B,d2                 ; DAC rate
+    move.b  #0,d3                   ; DAC priority
+    bsr.w   Sound_RequestDacSample   ; Request the DAC sample
     rts                             ; Return
 
 ; puck_faceoff (8): FM puck hits ice on face off.
@@ -1987,7 +1996,7 @@ Sound_LoadZ80Program:
     move.w  #$100,(IO_Z80BUS).l     ; Request Z80 bus
     lea     Z80_Program_Code(pc),a1 ; Load source address of Z80 program
     movea.l #Z80_RAM,a2             ; Load destination Z80 RAM base
-    move.w  #$597,d0                ; Set counter for $598 bytes -1
+    move.w  #$597,d0                ; $597 bytes: dbf runs the copy $597 times (entered at the dbf)
     bra.s   .load_z80_byte_loop2    ; Branch to loop
 .load_z80_byte_loop
     move.b  (a1)+,(a2)+             ; Copy byte from source to destination
@@ -2005,6 +2014,8 @@ Sound_LoadZ80Program:
 Z80_Program_Code
 ; Z80 sound driver, assembled by tools/build.js from src/sound/z80_snd_drv.asm (asm80)
 ; into this mode's obj/ folder and checked against the retail bytes ($116A6-$11C3D) first.
+; It is $598 bytes; Sound_LoadZ80Program copies only the first $597, so the last byte ($6E) never
+; reaches Z80 RAM (see Z80_DriverLastByte in the Z80 source).
 	IF MODE=0 ; retail
 	incbin ..\output\retail\obj\z80_snd_drv.bin
 	ENDIF
