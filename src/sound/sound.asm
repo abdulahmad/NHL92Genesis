@@ -2003,7 +2003,17 @@ Sound_LoadZ80Program:
     rts                             ; Return
 
 Z80_Program_Code
-    incbin ..\Extracted\Sound\z80_snd_drv.bin
+; Z80 sound driver, assembled by tools/build.js from src/sound/z80_snd_drv.asm (asm80)
+; into this mode's obj/ folder and checked against the retail bytes ($116A6-$11C3D) first.
+	IF MODE=0 ; retail
+	incbin ..\output\retail\obj\z80_snd_drv.bin
+	ENDIF
+	IF MODE=1 ; Rev A
+	incbin ..\output\reva\obj\z80_snd_drv.bin
+	ENDIF
+	IF MODE=2 ; dev
+	incbin ..\output\dev\obj\z80_snd_drv.bin
+	ENDIF
 sfx_sam_puck2_slap_pcm
     incbin ..\Extracted\Sound\sfx_sam_puck2_slap_pcm.bin
 sfx_sam_pass2_pcm

@@ -10,7 +10,7 @@ Start with the [main README](../README.md) for what this project is and how to b
 ## How the game works
 
 - [Sound system](sound-system.md): the 68000 and Z80 drivers, SFX and music data, instrument patches
-- [Z80 sound driver listing](z80_snd_drv.lst): disassembly of the Z80 driver (reference only; the build uses the bytes extracted from the ROM)
+- [Z80 sound driver listing](z80_snd_drv.lst): an older IDA-style listing of the Z80 driver, kept for reference only. It does not match the actual bytes in several places; the real source is [`src/sound/z80_snd_drv.asm`](../src/sound/z80_snd_drv.asm), which the build assembles
 - [File formats](file-formats.md): `.JIM`, `.ANIM` and `.PAL`
 
 ## EA's original documents
