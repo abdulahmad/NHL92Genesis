@@ -4,14 +4,14 @@
   "description": "Build scripts for NHL92",
   "scripts": {
     "assets": "node tools/prebuild.js dev",
-    "extractassets": "node tools/extractAssets92.js nhl92retail.bin",
+    "extractassets": "node tools/extractAssets92.js retail",
     "build:retail": "node tools/build.js retail",
     "build:reva": "node tools/build.js reva",
     "build:dev": "node tools/build.js dev",
     "build:logo": "node tools/build.js --logo",
     "build:sound": "node tools/build.js --sound",
-    "verify:retail": "node tools/verifyRom.js output/retail/nhl92.bin nhl92retail.bin",
-    "verify:reva": "node tools/verifyRom.js output/reva/nhl92.bin nhl92retailRevA.bin",
+    "verify:retail": "node tools/verifyRom.js output/retail/nhl92.bin retail",
+    "verify:reva": "node tools/verifyRom.js output/reva/nhl92.bin reva",
     "checksum": "node tools/generateChecksum.js",
     "clean": "node tools/build.js --clean"
   },

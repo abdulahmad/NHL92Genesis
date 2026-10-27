@@ -264,6 +264,8 @@ Examples:
 
 // Main execution
 const options = parseArgs();
+// No path (or an id: retail, reva): the ROM in the repo folder, found by its SHA-1 and size (tools/roms.js).
+if (!options.romFile || !require('fs').existsSync(options.romFile)) options.romFile = require('./roms').romPath(options.romFile || 'retail') || options.romFile;
 
 if (!options.romFile) {
     console.error('Error: ROM file path not provided');

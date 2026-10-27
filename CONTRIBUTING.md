@@ -16,7 +16,7 @@ The code, data and bytes must not change unless the change is the point of the P
 tools/verify_all.sh -q
 ```
 
-It builds retail and Rev A and compares each with its ROM (`nhl92retail.bin` and `nhl92retailRevA.bin` in the repo folder, see the README). Code that differs between the revisions is inside `IF REV=...` blocks. Never commit ROMs, `Extracted/` or `output/`.
+It builds retail and Rev A and compares each with its ROM (`nhl92retail.bin` and `nhl92retailRevA.bin` in the repo folder under any file name, found by SHA-1; see the README). Code that differs between the revisions is inside `IF REV=...` blocks. Never commit ROMs, `Extracted/` or `output/`.
 
 ## 3. sound.asm
 

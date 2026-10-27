@@ -7,43 +7,29 @@
 
 const GAME = 'NHL Hockey (NHL 92, Sega Genesis)';
 const EXTRACTOR = 'tools/extractAssets92.js';
-const ROMS = {
-    retail: { label: 'NHL Hockey (NHL 92) retail (1991.MAY, GM T-50236 -00)', file: 'nhl92retail.bin',
-              sha1: '2337ad3c065f46edccf19007d7a5be80a97520d5', size: 0x80000 },
-    reva:   { label: 'NHL Hockey (NHL 92) Rev A', file: 'nhl92retailRevA.bin',
-              sha1: '10b50ebf3db0b4d207e21acf4481eb704b3c45f9', size: 0x80000 },
-};
+const { ROMS, findRom, sha1Of } = require('./roms');
 // The ROM each target needs: retail and reva are verified against their own ROM; dev needs either one.
 // The assets are extracted from that ROM (retail and Rev A give identical assets).
 const TARGETS = { retail: ['retail'], reva: ['reva'], dev: ['retail', 'reva'] };
 // ---------------------------------------------------------------------------------------------
 const fs = require('fs');
 const path = require('path');
-const crypto = require('crypto');
 const { spawnSync } = require('child_process');
 
 const ROOT = path.join(__dirname, '..');
 const EXTRACTED = path.join(ROOT, 'Extracted');
 const MARKER = path.join(EXTRACTED, '.extract-complete.json');
 
-const sha1Of = (buf) => crypto.createHash('sha1').update(buf).digest('hex');
 const sizeText = (n) => `${n} bytes (0x${n.toString(16).toUpperCase()}, ${n / 0x100000 >= 1 ? n / 0x100000 + ' MB' : n / 1024 + ' KB'})`;
 
-// Check one ROM file. Returns { ok, path } or { ok: false, reason: 'missing' | 'wrong', ... }.
-function checkRom(rom) {
-    const p = path.join(ROOT, rom.file);
-    if (!fs.existsSync(p)) return { ok: false, reason: 'missing', path: p };
-    const data = fs.readFileSync(p);
-    const sha1 = sha1Of(data);
-    if (sha1 !== rom.sha1 || data.length !== rom.size) return { ok: false, reason: 'wrong', path: p, sha1, size: data.length };
-    return { ok: true, path: p };
-}
+// Check one ROM: a file in the repo folder with this SHA-1 and size, whatever its name (tools/roms.js).
+const checkRom = findRom;
 
 function romBlock(rom) {
     return [
         `  ${rom.label}`,
-        `    Put it at:  ${path.join(ROOT, rom.file)}`,
-        `                (${rom.file} in the repo folder)`,
+        `    Put it in:  ${ROOT}`,
+        `                (any file name: it is found by its SHA-1 and size; ${rom.file} is the usual name)`,
         `    SHA-1:      ${rom.sha1}`,
         `    Size:       ${sizeText(rom.size)}`,
     ].join('\n');
@@ -55,7 +41,7 @@ function stop(lines) {
     console.error(lines.join('\n'));
     console.error('');
     console.error(`ROMs are not included in the repo. Use your own dump of the ${GAME} cartridge,`);
-    console.error('saved under exactly that file name, then run the build again. The assets in Extracted/');
+    console.error('in the repo folder (any file name), then run the build again. The assets in Extracted/');
     console.error('are then extracted from it automatically.');
     console.error('');
     process.exit(1);

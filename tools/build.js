@@ -6,8 +6,8 @@
 //                                                       sound driver (output/<mode>/obj/modified_Hockey.snd)
 //   node tools/build.js --clean                         delete output/ and Extracted/
 // --no-color (or NO_COLOR) turns the colors off; they are also off when the output is not a terminal.
-// retail: REV=0 CHECKSUM=1, verified against nhl92retail.bin. reva: REV=1 CHECKSUM=1, verified against
-// nhl92retailRevA.bin. dev: REV=1 CHECKSUM=0 (no validation routine), not verified.
+// retail: REV=0 CHECKSUM=1, verified against the retail ROM. reva: REV=1 CHECKSUM=1, verified against
+// the Rev A ROM (each found in the repo folder by its SHA-1 and size, any file name: tools/roms.js). dev: REV=1 CHECKSUM=0 (no validation routine), not verified.
 // Each mode has its own folder: output/<mode>/nhl92.bin is the ROM, output/<mode>/obj/ holds the intermediates (the
 // modified logo and sound binaries, assembler logs and listings). The main ROM includes the modified logo and sound
 // binaries of its own mode (src/main.asm and src/hockey.asm pick the path from MODE), so those are built first.
@@ -16,12 +16,13 @@ const path = require('path');
 const { spawn } = require('child_process');
 
 const ROOT = path.join(__dirname, '..');
+const { romPath } = require('./roms');
 const WIN = process.platform === 'win32';
 const EXE = path.join(ROOT, 'assembler', 'Assembler.exe');
 const MODES = {
     // id is the MODE equate src/main.asm and src/hockey.asm use to include this mode's logo and sound binaries.
-    retail: { id: 0, rev: 0, checksum: 1, prebuild: 'retail', ref: 'nhl92retail.bin' },
-    reva: { id: 1, rev: 1, checksum: 1, prebuild: 'reva', ref: 'nhl92retailRevA.bin' },
+    retail: { id: 0, rev: 0, checksum: 1, prebuild: 'retail', ref: 'retail' },
+    reva: { id: 1, rev: 1, checksum: 1, prebuild: 'reva', ref: 'reva' },
     dev: { id: 2, rev: 1, checksum: 0, prebuild: 'dev', ref: null },
 };
 
@@ -255,9 +256,10 @@ async function subBuild(name, src, base, ext, rev, checksum) {
     // 7. verify against the reference ROM.
     if (!mode.ref) { step('verify', `${rel(final)} not verified (dev build)`); return; }
     begin('verify');
-    const r = await node('verifyRom.js', [final, mode.ref]);
+    const refPath = romPath(mode.ref);
+    const r = await node('verifyRom.js', [final, refPath]);
     const first = r.out.split(/\r?\n/).find((l) => l.trim()) || '';
     if (r.status !== 0 || !/^MATCH/.test(first)) fail('verify', rel(final), r.out, 'MISMATCH');
-    step('verify', `MATCH ${rel(final)} == ${mode.ref}`);
+    step('verify', `MATCH ${rel(final)} == ${rel(refPath)}`);
     detail(r.out);
 })();
