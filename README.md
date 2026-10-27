@@ -6,7 +6,7 @@
 
 Bitwise perfect compilable assembly of NHL Hockey (aka NHL 92) for Sega Genesis. Includes fully disassembled sound driver. Requires original ROM file to build.
 
-Built on the work that McMarkis (https://github.com/Mhopkinsinc/NHLHockey) did to get the source compiling.
+Built on the work that McMarkis (https://github.com/Mhopkinsinc/NHLHockey) did to get the code compiling.
 
 ## Features of this version:
 - Retail version is bitwise perfect with retail ROM. Rev A build is bitwise perfect with the Rev A ROM. Both are verified by the build.
