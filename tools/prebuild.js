@@ -88,6 +88,20 @@ if (!romPath) {
         lines.push(`    its SHA-1 is ${r.sha1}, size ${sizeText(r.size)}.`);
         lines.push('    (a bad dump, a hack, another revision, or a byte-swapped / interleaved file)');
     }
+    // Several revisions: say which ones are in the folder and the commands that build them.
+    const have = Object.keys(ROMS).filter((id) => findRom(ROMS[id]).ok);
+    if (Object.keys(ROMS).length > 1) {
+        const want = candidates.map((r) => r.label).join(' or ');
+        lines.push(`You are building ${want}, but no ROM of ${candidates.length > 1 ? 'those revisions' : 'that revision'} is in the repo folder.`);
+        if (have.length) {
+            lines.push('The ROMs that are there, and the command that builds each:');
+            for (const id of have) lines.push(`    ${ROMS[id].label}:  npm run build:${id}   (node tools/build.js ${id})`);
+        } else {
+            lines.push('No supported ROM is in the repo folder.');
+        }
+        lines.push('To build this one, add its ROM (below); or build one of the revisions you have.');
+        lines.push('');
+    }
     lines.push(candidates.length > 1 ? 'This build needs one of these ROMs, exactly the version shown:' : 'This build needs this ROM, exactly the version shown:');
     for (const { rom } of problems) lines.push(romBlock(rom));
     stop(lines);
