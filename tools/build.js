@@ -106,17 +106,40 @@ function finish(name, paintName, mark) {
     else console.log(header(name, paintName, mark));
     current = null;
 }
-const step = (name, text) => { finish(name, c.green, OK); console.log(INDENT + paint(text)); };
+// Output is wrapped to the terminal width (a TTY only), each continuation line indented under its text, so long messages stay aligned.
+// Colors (ANSI codes) do not count toward the width.
+const visible = (s) => s.replace(/\x1b\[[0-9;]*m/g, '');
+function wrap(text) {
+    const width = process.stdout.columns ? process.stdout.columns - 1 : Infinity;
+    const out = [];
+    for (const raw of String(text).replace(/\s+$/, '').split(/\r?\n/)) {
+        const lead = /^\s*/.exec(raw)[0];
+        const room = Math.max(20, width - INDENT.length - lead.length - 2);
+        if (visible(raw).length - lead.length <= room + 2) { out.push(raw); continue; }
+        let line = lead;
+        for (let word of raw.slice(lead.length).split(' ')) {
+            while (visible(word).length > room && !word.includes('\x1b')) {   // an unbreakable token (a long path)
+                if (line.trim()) { out.push(line); line = lead + '  '; }
+                out.push(line + word.slice(0, room)); word = word.slice(room); line = lead + '  ';
+            }
+            if (line.trim() && visible(line).length + 1 + visible(word).length > room + lead.length + 2) { out.push(line); line = lead + '  '; }
+            line += (line.trim() ? ' ' : '') + word;
+        }
+        out.push(line);
+    }
+    return out;
+}
+const step = (name, text) => { finish(name, c.green, OK); console.log(wrap(text).map((l) => INDENT + paint(l)).join('\n')); };
 function detail(text) {
     if (!verbose || !text.trim()) return;
     if (live && current && !dirty) { stopSpin(); process.stdout.write('\n'); }
     dirty = true;
-    console.log(text.replace(/\s+$/, '').replace(/^/gm, INDENT));
+    console.log(wrap(text).map((l) => INDENT + l).join('\n'));
 }
 function fail(name, text, log, label = 'FAILED') {
     finish(name, c.red, BAD);
-    console.log(`${INDENT}${c.red(label)}: ${text}`);
-    if (log) console.log(log.replace(/\s+$/, '').replace(/^/gm, INDENT));
+    console.log(wrap(`${label}: ${text}`).map((l, i) => INDENT + (i ? l : l.replace(label, c.red(label)))).join('\n'));
+    if (log) console.log(wrap(log).map((l) => INDENT + l).join('\n'));
     console.log(c.red(`BUILD FAILED at ${name}`));
     process.exit(1);
 }
@@ -132,7 +155,12 @@ function run(cmd, argv, opts = {}) {
         p.on('close', (code) => resolve({ status: code, out: Buffer.concat(chunks).toString('latin1') }));
     });
 }
-const node = (script, argv) => run(process.execPath, [path.join(__dirname, script), ...argv]);
+// The child tools get the color / emoji choice of this terminal (prebuild.js colors its ROM message with it).
+const node = async (script, argv) => {
+    const r = await run(process.execPath, [path.join(__dirname, script), ...argv], { env: { ...process.env, ...(color ? { NHL_COLOR: '1' } : {}), NHL_EMOJI: utf8 ? '1' : '0' } });
+    r.out = Buffer.from(r.out, 'latin1').toString('utf8');                 // run() reads output as latin1 (the assembler's); these tools write UTF-8
+    return r;
+};
 
 // The Z80 sound driver: asm80 (npm devDependency) assembles src/sound/z80_snd_drv.asm into obj/z80_snd_drv.bin,
 // which sound.asm includes; the result must equal the bytes extracted from the ROM ($116A6-$11C3D).
