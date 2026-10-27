@@ -1,8 +1,10 @@
 // Compare a built ROM to a reference ROM. Exit 1 unless every byte matches.
-// Usage: node tools/verifyRom.js <built.bin> <reference.bin> [maxMismatches]
+// Usage: node tools/verifyRom.js <built.bin> <reference.bin | retail | reva> [maxMismatches]   (an id: the ROM in the repo folder, tools/roms.js)
 const fs = require('fs');
+const { romPath } = require('./roms');
 
-const [builtPath, referencePath, maxArg] = process.argv.slice(2);
+const [builtPath, referenceArg, maxArg] = process.argv.slice(2);
+const referencePath = referenceArg && !fs.existsSync(referenceArg) ? (romPath(referenceArg) || referenceArg) : referenceArg;
 const maxMismatches = Number(maxArg || 16);
 
 if (!builtPath || !referencePath) {

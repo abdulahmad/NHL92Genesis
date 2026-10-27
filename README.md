@@ -27,12 +27,12 @@ Built on the work that McMarkis (https://github.com/Mhopkinsinc/NHLHockey) did t
 
 2. In the `NHL92Genesis` folder, run `npm i`. This also installs [asm80](https://www.npmjs.com/package/asm80) (pinned in `package.json`, MIT, pure JavaScript), the Z80 assembler used for the Z80 sound driver; nothing else needs installing for it on Windows, Linux or macOS. The 68000 assembler (`assembler/Assembler.exe`, SNASM68k) runs directly on Windows and under wine on Linux/macOS.
 
-3. Copy your NHL Hockey (NHL 92) Sega Genesis ROM dumps into the `NHL92Genesis` folder (ROMs are not included in the repo):
+3. Copy your NHL Hockey (NHL 92) Sega Genesis ROM dumps into the `NHL92Genesis` folder (ROMs are not included in the repo). The usual file names are below, but any file name works: the build finds each ROM by its SHA-1 and size (`tools/roms.js`):
 
     | ROM | File name | SHA-1 | Size |
     |---|---|---|---|
-    | Retail (1991.MAY, GM T-50236 -00) | `nhl92retail.bin` | `2337ad3c065f46edccf19007d7a5be80a97520d5` | 524288 bytes (512 KB) |
-    | Rev A | `nhl92retailRevA.bin` | `10b50ebf3db0b4d207e21acf4481eb704b3c45f9` | 524288 bytes (512 KB) |
+    | Retail (1991.MAY, GM T-50236 -00) | `nhl92retail.bin` (usual name) | `2337ad3c065f46edccf19007d7a5be80a97520d5` | 524288 bytes (512 KB) |
+    | Rev A | `nhl92retailRevA.bin` (usual name) | `10b50ebf3db0b4d207e21acf4481eb704b3c45f9` | 524288 bytes (512 KB) |
 
     The assets can be extracted from either ROM (both give identical assets). The retail build is verified against the retail ROM and the Rev A build against the Rev A ROM; the dev build needs either one.
 
