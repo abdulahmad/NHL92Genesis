@@ -83,7 +83,9 @@ This project is AI-assisted. The work is directed by a strict ruleset and curate
 
 ## Credits and derivative works
 
-This project is the result of my work (abdulahmad) and the work of the people credited below. If you build anything from it, including mods, ROM or EXE hacks, ports, released forks, tools, or any other derivative work, you must credit us:
+Thanks to McMarkis (Mhopkinsinc), whose NHLHockey source this build is built on.
+
+This project is the result of my work (abdulahmad) and the work of the people credited above. If you build anything from it, including mods, ROM or EXE hacks, ports, released forks, tools, or any other derivative work, you must credit us:
 
 - Put the credit in your repo's README, near the top and not buried in a footer, and in the notes of every release you publish, including any text file shipped inside a release archive.
 - Name me (abdulahmad) and link to this repository.
