@@ -71,20 +71,22 @@ const live = color;
 const utf8 = WIN ? Boolean(process.env.WT_SESSION || process.env.TERM_PROGRAM || process.env.ConEmuANSI)
     : /utf-?8/i.test(process.env.LC_ALL || process.env.LC_CTYPE || process.env.LANG || '');
 const SPIN = utf8 ? ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'] : ['|', '/', '-', '\\'];
-const OK = utf8 ? '✓' : 'OK';
-const BAD = utf8 ? '✗' : 'X';
-const MARK = Math.max(OK.length, BAD.length, 1);
+const OK = utf8 ? '✅' : 'OK';
+const BAD = utf8 ? '❌' : 'X';
+const MARK = 2;                                                      // columns of the mark: the emoji are two wide
+const wide = (m) => /\p{Extended_Pictographic}/u.test(m) ? 1 : 0;   // extra columns beyond .length
+const padMark = (m) => m + ' '.repeat(Math.max(0, MARK - m.length - wide(m)));
 const INDENT = ' '.repeat(`[0/0] ${live ? ' '.repeat(MARK + 1) : ''}${''.padEnd(10)} `.length);
 let current = null;
 let dirty = false;
 let timer = null;
 let frame = 0;
 function header(name, paintName, mark) {
-    const head = `[${n}/${steps}] ${live ? `${mark.padEnd(MARK)} ` : ''}${name.padEnd(10)} `;
+    const head = `[${n}/${steps}] ${live ? `${padMark(mark)} ` : ''}${name.padEnd(10)} `;
     let desc = ABOUT[name] || '';
     const width = live ? (process.stdout.columns || 80) - 1 : Infinity;
-    if (head.length + desc.length > width) desc = desc.slice(0, Math.max(0, width - head.length - 1)) + (width > head.length ? '…'.slice(0, utf8 ? 1 : 0) : '');
-    const markPart = live ? `${paintName(mark.padEnd(MARK))} ` : '';
+    if (head.length + wide(mark) + desc.length > width) desc = desc.slice(0, Math.max(0, width - head.length - wide(mark) - 1)) + (width > head.length ? '…'.slice(0, utf8 ? 1 : 0) : '');
+    const markPart = live ? `${paintName(padMark(mark))} ` : '';
     return `${c.cyan(`[${n}/${steps}]`)} ${markPart}${paintName(name.padEnd(10))} ${c.dim(desc)}`;
 }
 const draw = (text) => process.stdout.write(`\r\x1b[2K${text}`);

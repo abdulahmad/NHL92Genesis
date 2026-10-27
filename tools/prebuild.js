@@ -56,7 +56,7 @@ function stop(info) {
     }
     if (info.have && info.have.length) {
         out.push('', k.green(`${icon('\u2705', 'OK')}The ROMs you have, and the command that builds each:`));
-        for (const h of info.have) out.push(`    ${k.green('\u2713')} ${h.label}  ${k.dim('->')}  ${k.bold(`npm run build:${h.id}`)}`);
+        for (const h of info.have) out.push(`    ${EMOJI ? '\u2705' : k.green('\u2713')} ${h.label}  ${k.dim('->')}  ${k.bold(`npm run build:${h.id}`)}`);
     }
     out.push('', k.cyan(`${icon('\u{1F4C0}', '')}${info.have && info.have.length ? 'To build the one you asked for, add this ROM' : info.want.length > 1 ? 'This build needs one of these ROMs, each exactly the version shown' : 'This build needs this ROM, exactly the version shown'}:`));
     for (const rom of info.want) out.push(romBlock(rom));
