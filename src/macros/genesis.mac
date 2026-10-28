@@ -1,7 +1,17 @@
+; VmInc: set the VDP auto-increment (register 15).
+;   Emits: move.w #$8F00+(\1&255),Vctrl (one instruction, no data).
+;   \1: bytes to step after each VDP data access (2 for word writes).
+;   Example (middle.asm:484): VmInc 2  -> move.w #$8F02,Vctrl
 VmInc MACRO ;set video auto inc. mode
 	move	#$8f00+(\1&255),Vctrl
 	ENDM
 
+; String: a print string with its length in front (print, printz and the string lists read it).
+;   Emits: dc.w length (counts the word itself and any pad), each argument as dc.b in order, then
+;   one 0 pad byte if the data would end on an odd address.
+;   \1..\15: each a quoted text ('abc') or a byte expression (e.g. a control code -$ab,x,y).
+;   Example (logic.asm:193): String '        '
+;     -> 00 0A 20 20 20 20 20 20 20 20
 String  MACRO
         ; Store current position
 @begin1  =   *
@@ -62,11 +72,21 @@ String  MACRO
         org     @end1
     ENDM
 
+; HEX2 (used as hex2): four big-endian words of hex data.
+;   Emits: dc.w $\1,$\2,$\3,$\4 (8 bytes).
+;   \1..\4: 4 hex digits each, written without $ (the macro adds it).
+;   Example (teamdata.asm:81): hex2 351d,daa0,01cc,ccf0
+;     -> 35 1D DA A0 01 CC CC F0
 HEX2 MACRO    ; macro for hex data
     dc.w    $\1,$\2,$\3,$\4     ; handle 4 words at a time, add $ prefix
     ENDM
 
-; PIX macro for
+; PIX: goalie save odds bytes, looked up for the values the data uses.
+;   Emits: one dc.b per argument: \1 1111=$55, 2131=$9D, 3111=$D5; \2 1111=$55, 2131=$9D, 3300=$F0,
+;   1311=$75; \3 1213=$67. Any other value emits nothing.
+;   \1..\3: four digit numbers, one digit (0-3) per puck region, as 93G/94G PIX1.
+;   Example (hockey.asm:2516): pix 1111,2131,1213
+;     -> 55 9D 67
 PIX     MACRO
         ; First parameter
         IF      \1=1111
