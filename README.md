@@ -36,13 +36,13 @@ Built on the work that McMarkis (https://github.com/Mhopkinsinc/NHLHockey) did t
 
     The assets can be extracted from either ROM (both give identical assets). The retail build is verified against the retail ROM and the Rev A build against the Rev A ROM; the dev build needs either one.
 
-4. Build one of 3 versions. Everything runs through `tools/build.js` (node; on Windows it runs the assembler directly, on Linux/macOS under wine). Each build first runs `tools/prebuild.js`, which checks the ROM(s) by SHA-1 and size (and stops with the expected file name, SHA-1 and size if one is missing or wrong), then extracts the assets into `Extracted/` from that ROM with `tools/extractAssets92.js` if they are missing or incomplete. It then builds the EA logo (`output/<mode>/obj/modified_EALogo.bin`), the Z80 sound driver (`output/<mode>/obj/z80_snd_drv.bin`) and the sound driver (`output/<mode>/obj/modified_Hockey.snd`) before the main ROM.
+4. Build one of 3 versions. Everything runs through `tools/build.js` (node; on Windows it runs the assembler directly, on Linux/macOS under wine). Each build first runs `tools/prebuild.js`, which checks the ROM(s) by SHA-1 and size (and stops with the expected file name, SHA-1 and size if one is missing or wrong), then extracts the assets into `Extracted/` from that ROM with `tools/extractAssets92.js` if they are missing or incomplete. It then builds the EA logo (`output/obj/modified_EALogo.bin`), the Z80 sound driver (`output/obj/z80_snd_drv.bin`) and the sound driver (`output/obj/modified_Hockey.snd`) before the main ROM.
 
     - `npm run build:retail`: the `Retail` ROM, with the retail checksum validation check. Verified against `nhl92retail.bin`
     - `npm run build:reva`: the `Rev A` ROM, with the checksum validation check. Verified against `nhl92retailRevA.bin`
     - `npm run build:dev`: for developing your own version. Uses `Rev A` flags without the checksum validation check
 
-    Each version has its own folder: the built ROM is `output/retail/nhl92.bin`, `output/reva/nhl92.bin` or `output/dev/nhl92.bin`, and that folder's `obj/` holds the intermediates (modified logo and sound binaries, assembler logs and listings). `src/main.asm`, `src/hockey.asm` and `src/sound/sound.asm` pick the right `obj/` files from the `REV` and `CHECKSUM` equates that `build.js` passes to the assembler (dev is CHECKSUM=0, retail REV=0, Rev A REV=1). Both the retail and Rev A builds are verified byte for byte against their ROMs.
+    Each version has its own ROM: `output/retail/nhl92.bin`, `output/reva/nhl92.bin` or `output/dev/nhl92.bin`. The intermediates (modified logo and sound binaries, Z80 driver, assembler logs and listings) go to one shared folder, `output/obj/`, which every build empties and regenerates for its own mode first, so `src/main.asm`, `src/hockey.asm` and `src/sound/sound.asm` include them from a single fixed path. Run builds one after another, not in parallel. Both the retail and Rev A builds are verified byte for byte against their ROMs.
 
 Other scripts:
 - `npm run assets`: ROM check and asset extraction only (`npm run extractassets` runs the extractor directly)
@@ -59,16 +59,16 @@ All the build tools are in `tools/`.
 `tools/build.js` prints one line per step with a short note under it, and the step's result under that:
 
 1. **prebuild**: check the retail (or Rev A) ROM and extract graphics/sound assets into `Extracted/`.
-2. **logo**: SNASM68k builds the EA logo intro (`output/<mode>/obj/modified_EALogo.bin`), then its opcodes are patched.
-3. **z80**: asm80 assembles the Z80 sound driver `src/sound/z80_snd_drv.asm` into `output/<mode>/obj/z80_snd_drv.bin` (asm80 writes its listing `z80_snd_drv.lst` next to it) and checks it byte-for-byte against the retail driver bytes ($116A6-$11C3D), which the prebuild extracts to `Extracted/Sound/z80_snd_drv.bin` only for this check. `src/sound/sound.asm` includes this assembled file at `Z80_Program_Code`.
-4. **sound**: SNASM68k builds the sound driver and music (`output/<mode>/obj/modified_Hockey.snd`), then its opcodes are patched.
+2. **logo**: SNASM68k builds the EA logo intro (`output/obj/modified_EALogo.bin`), then its opcodes are patched.
+3. **z80**: asm80 assembles the Z80 sound driver `src/sound/z80_snd_drv.asm` into `output/obj/z80_snd_drv.bin` (asm80 writes its listing `z80_snd_drv.lst` next to it) and checks it byte-for-byte against the retail driver bytes ($116A6-$11C3D), which the prebuild extracts to `Extracted/Sound/z80_snd_drv.bin` only for this check. `src/sound/sound.asm` includes this assembled file at `Z80_Program_Code`.
+4. **sound**: SNASM68k builds the sound driver and music (`output/obj/modified_Hockey.snd`), then its opcodes are patched.
 5. **assemble**: SNASM68k turns `src/hockey.asm`, with the logo and sound, into a raw ROM image.
 6. **fixopcodes**: patch the instructions where SNASM picks a different encoding than EA's original assembler.
 7. **verify**: compare byte-for-byte with the retail or Rev A ROM. Dev builds are not verified.
 
 In a terminal, each step turns a spinner while it runs and is redrawn with a green check or a red cross when it ends. Values are bold, `OK` and `MATCH` are green, and failures are red. The colours are off when the output is not a terminal, with `NO_COLOR` set, or with `--no-color`.
 
-A failing step prints `FAILED` (or `MISMATCH`), the relevant log lines (`output/<mode>/obj/Build_nhl92.log` for the assembler) and `BUILD FAILED at <step>`, and exits 1. `npm run clean` reports what it removed from `output/` and `Extracted/`.
+A failing step prints `FAILED` (or `MISMATCH`), the relevant log lines (`output/obj/Build_nhl92.log` for the assembler) and `BUILD FAILED at <step>`, and exits 1. `npm run clean` reports what it removed from `output/` and `Extracted/`.
 
 # Documentation
 

@@ -5642,16 +5642,8 @@ p_initialZ80	equ	(*+4)
 p_initune	equ	(*+8)
 p_turnoff	equ	(*+12)
 p_initfx	equ	(*+16)
-	;this build's modified sound binary (a string equate used as \HockeySndBin): dev is the only build with
-	;CHECKSUM=0 (REV=1), the retail builds go by REV
-	IF CHECKSUM=0 ; dev
-HockeySndBin	equs	"..\output\dev\obj\modified_Hockey.snd"
-	ELSEIF REV=0 ; retail
-HockeySndBin	equs	"..\output\retail\obj\modified_Hockey.snd"
-	ELSE ; Rev A (REV=1)
-HockeySndBin	equs	"..\output\reva\obj\modified_Hockey.snd"
-	ENDIF
-	incbin \HockeySndBin
+	;the modified sound binary, rebuilt by tools/build.js for this build's mode into the shared output/obj/
+	incbin ..\output\obj\modified_Hockey.snd
 	even
 
 GameSetUpMap
