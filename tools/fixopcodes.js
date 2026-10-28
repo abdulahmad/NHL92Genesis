@@ -56,7 +56,8 @@ async function parseListingFile(lines, opcodeReplacements) {
 
         for (const line of lines) {
             // Use a platform-independent path comparison in regex
-            if (/\s*incbin\s+..[\\\/](?:Extracted[\\\/]Sound|output(?:[\\\/]\w+[\\\/]obj)?)[\\\/](?:modified_)?Hockey\.snd/i.test(line)) {
+            // the sound binary: a literal path, or src/hockey.asm's \HockeySndBin string equate
+            if (/\s*incbin\s+(?:..[\\\/](?:Extracted[\\\/]Sound|output(?:[\\\/]\w+[\\\/]obj)?)[\\\/](?:modified_)?Hockey\.snd|\\HockeySndBin\b)/i.test(line)) {
                 console.log(`Hit incbin directive, stopping scan for ${instruction}`);
                 break;       // stop processing any more lines for this replacement
             }

@@ -42,7 +42,7 @@ Built on the work that McMarkis (https://github.com/Mhopkinsinc/NHLHockey) did t
     - `npm run build:reva`: the `Rev A` ROM, with the checksum validation check. Verified against `nhl92retailRevA.bin`
     - `npm run build:dev`: for developing your own version. Uses `Rev A` flags without the checksum validation check
 
-    Each version has its own folder: the built ROM is `output/retail/nhl92.bin`, `output/reva/nhl92.bin` or `output/dev/nhl92.bin`, and that folder's `obj/` holds the intermediates (modified logo and sound binaries, assembler logs and listings). `src/main.asm` and `src/hockey.asm` pick the right `obj/` files from the `MODE` equate that `build.js` passes to the assembler (0 retail, 1 Rev A, 2 dev). Both the retail and Rev A builds are verified byte for byte against their ROMs.
+    Each version has its own folder: the built ROM is `output/retail/nhl92.bin`, `output/reva/nhl92.bin` or `output/dev/nhl92.bin`, and that folder's `obj/` holds the intermediates (modified logo and sound binaries, assembler logs and listings). `src/main.asm`, `src/hockey.asm` and `src/sound/sound.asm` pick the right `obj/` files from the `REV` and `CHECKSUM` equates that `build.js` passes to the assembler (dev is CHECKSUM=0, retail REV=0, Rev A REV=1). Both the retail and Rev A builds are verified byte for byte against their ROMs.
 
 Other scripts:
 - `npm run assets`: ROM check and asset extraction only (`npm run extractassets` runs the extractor directly)

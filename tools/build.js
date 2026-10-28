@@ -10,7 +10,7 @@
 // the Rev A ROM (each found in the repo folder by its SHA-1 and size, any file name: tools/roms.js). dev: REV=1 CHECKSUM=0 (no validation routine), not verified.
 // Each mode has its own folder: output/<mode>/nhl92.bin is the ROM, output/<mode>/obj/ holds the intermediates (the
 // modified logo and sound binaries, assembler logs and listings). The main ROM includes the modified logo and sound
-// binaries of its own mode (src/main.asm and src/hockey.asm pick the path from MODE), so those are built first.
+// binaries of its own mode (src/main.asm, src/hockey.asm and src/sound/sound.asm pick the path from REV and CHECKSUM), so those are built first.
 const fs = require('fs');
 const path = require('path');
 const { spawn } = require('child_process');
@@ -22,10 +22,9 @@ const EXPANDING_ROM_FILL_HINT = 'the 512 KB fill in src/hockey.asm';
 const WIN = process.platform === 'win32';
 const EXE = path.join(ROOT, 'assembler', 'Assembler.exe');
 const MODES = {
-    // id is the MODE equate src/main.asm and src/hockey.asm use to include this mode's logo and sound binaries.
-    retail: { id: 0, rev: 0, checksum: 1, prebuild: 'retail', ref: 'retail' },
-    reva: { id: 1, rev: 1, checksum: 1, prebuild: 'reva', ref: 'reva' },
-    dev: { id: 2, rev: 1, checksum: 0, prebuild: 'dev', ref: null },
+    retail: { rev: 0, checksum: 1, prebuild: 'retail', ref: 'retail' },
+    reva: { rev: 1, checksum: 1, prebuild: 'reva', ref: 'reva' },
+    dev: { rev: 1, checksum: 0, prebuild: 'dev', ref: null },
 };
 
 const args = process.argv.slice(2);
@@ -195,7 +194,7 @@ async function buildZ80() {
 async function assemble(name, src, outBase, binExt, rev, checksum) {
     const asmArgs = ['/p', '/m', '/g', '/o', 'd-', '/o', 's-', '/o', 'r+', '/o', 'l+', '/o', 'l.', '/o', 'ow+', '/o', 'op-',
         '/o', 'os+', '/o', 'oz+', '/o', 'omq-', '/o', 'oaq+', '/o', 'osq+',
-        '/e', `REV=${rev}`, '/e', `CHECKSUM=${checksum}`, '/e', `MODE=${mode.id}`, `${src},${outBase}${binExt},${outBase},${outBase}`];
+        '/e', `REV=${rev}`, '/e', `CHECKSUM=${checksum}`, `${src},${outBase}${binExt},${outBase},${outBase}`];
     const r = await (WIN ? run(EXE, asmArgs, { cwd: path.join(ROOT, 'src') })
         : run('wine', [EXE, ...asmArgs], { cwd: path.join(ROOT, 'src'), env: { ...process.env, WINEDEBUG: '-all' } }));
     const base = path.join(ROOT, 'src', outBase.replace(/\\/g, '/'));

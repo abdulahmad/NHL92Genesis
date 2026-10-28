@@ -82,15 +82,16 @@ Start
 		nop
 	ENDIF
 	
-	IF MODE=0 ; retail
-	incbin ..\output\retail\obj\modified_EALogo.bin
+	;this build's modified EA logo binary (a string equate used as \EALogoBin): dev is the only build with
+	;CHECKSUM=0 (REV=1), the retail builds go by REV
+	IF CHECKSUM=0 ; dev
+EALogoBin	equs	"..\output\dev\obj\modified_EALogo.bin"
+	ELSEIF REV=0 ; retail
+EALogoBin	equs	"..\output\retail\obj\modified_EALogo.bin"
+	ELSE ; Rev A (REV=1)
+EALogoBin	equs	"..\output\reva\obj\modified_EALogo.bin"
 	ENDIF
-	IF MODE=1 ; Rev A
-	incbin ..\output\reva\obj\modified_EALogo.bin
-	ENDIF
-	IF MODE=2 ; dev
-	incbin ..\output\dev\obj\modified_EALogo.bin
-	ENDIF
+	incbin \EALogoBin
 
 	bra	Begin
 

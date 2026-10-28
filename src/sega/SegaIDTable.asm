@@ -9,14 +9,12 @@
 	dc.b	'                '	; 		$160
 	dc.b	'                '	; 		$170
 	dc.b	'GM T-50236 -00'	; 05	$180	cartridge cat., product no., version no. (14 bytes)
-	IF CHECKSUM=1 ; Security check enabled
-		IF REV=0 ; RETAIL
-			dc.w	$93B8		; 06	$18E	check sum data (installed by checsum program) (2 bytes)
-		ELSE ; REV A
-			dc.w	$3E24 		; 06	$18E	check sum data (installed by checsum program) (2 bytes)
-		ENDIF
-	ELSE ; Security check disabled
+	IF CHECKSUM=0 ; Security check disabled (dev)
 		dc.w	$0000				; 06	$18E	check sum data (installed by checsum program) (2 bytes)
+	ELSEIF REV=0 ; RETAIL
+		dc.w	$93B8		; 06	$18E	check sum data (installed by checsum program) (2 bytes)
+	ELSE ; REV A
+		dc.w	$3E24 		; 06	$18E	check sum data (installed by checsum program) (2 bytes)
 	ENDIF
 	dc.b	'J               '	; 07	$190	I/O peripheral info. (J=Control Pad) (16 bytes)
 	dc.l	$00000000,endofcart-1	; 08	$1A0	cartridge size (start and end address) (16 bytes)
