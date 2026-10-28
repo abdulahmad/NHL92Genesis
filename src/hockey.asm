@@ -5642,15 +5642,8 @@ p_initialZ80	equ	(*+4)
 p_initune	equ	(*+8)
 p_turnoff	equ	(*+12)
 p_initfx	equ	(*+16)
-	IF MODE=0 ; retail
-	incbin ..\output\retail\obj\modified_Hockey.snd
-	ENDIF
-	IF MODE=1 ; Rev A
-	incbin ..\output\reva\obj\modified_Hockey.snd
-	ENDIF
-	IF MODE=2 ; dev
-	incbin ..\output\dev\obj\modified_Hockey.snd
-	ENDIF
+	;the modified sound binary, rebuilt by tools/build.js for this build's mode into the shared output/obj/
+	incbin ..\output\obj\modified_Hockey.snd
 	even
 
 GameSetUpMap

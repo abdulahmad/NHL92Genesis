@@ -2013,18 +2013,10 @@ Sound_LoadZ80Program:
 
 Z80_Program_Code
 ; Z80 sound driver, assembled by tools/build.js from src/sound/z80_snd_drv.asm (asm80)
-; into this mode's obj/ folder and checked against the retail bytes ($116A6-$11C3D) first.
+; into the shared output/obj/ folder and checked against the retail bytes ($116A6-$11C3D) first.
 ; It is $598 bytes; Sound_LoadZ80Program copies only the first $597, so the last byte ($6E) never
 ; reaches Z80 RAM (see Z80_DriverLastByte in the Z80 source).
-	IF MODE=0 ; retail
-	incbin ..\output\retail\obj\z80_snd_drv.bin
-	ENDIF
-	IF MODE=1 ; Rev A
-	incbin ..\output\reva\obj\z80_snd_drv.bin
-	ENDIF
-	IF MODE=2 ; dev
-	incbin ..\output\dev\obj\z80_snd_drv.bin
-	ENDIF
+	incbin ..\output\obj\z80_snd_drv.bin
 sfx_sam_puck2_slap_pcm
     incbin ..\Extracted\Sound\sfx_sam_puck2_slap_pcm.bin
 sfx_sam_pass2_pcm

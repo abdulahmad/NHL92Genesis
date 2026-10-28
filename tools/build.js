@@ -2,15 +2,17 @@
 // build.js: the whole NHL 92 build, one line per step, on Windows and on Linux/macOS (wine).
 // Replaces build.bat / buildEALogo.bat / buildSound.bat (as in NHL94Genesis tools/build.js).
 //   node tools/build.js [retail|reva|dev] [--verbose]   full ROM -> output/<mode>/nhl92.bin
-//   node tools/build.js [mode] --logo | --sound         only the EA logo (output/<mode>/obj/modified_EALogo.bin) or the
-//                                                       sound driver (output/<mode>/obj/modified_Hockey.snd)
+//   node tools/build.js [mode] --logo | --sound         only the EA logo (output/obj/modified_EALogo.bin) or the
+//                                                       sound driver (output/obj/modified_Hockey.snd)
 //   node tools/build.js --clean                         delete output/ and Extracted/
 // --no-color (or NO_COLOR) turns the colors off; they are also off when the output is not a terminal.
 // retail: REV=0 CHECKSUM=1, verified against the retail ROM. reva: REV=1 CHECKSUM=1, verified against
 // the Rev A ROM (each found in the repo folder by its SHA-1 and size, any file name: tools/roms.js). dev: REV=1 CHECKSUM=0 (no validation routine), not verified.
-// Each mode has its own folder: output/<mode>/nhl92.bin is the ROM, output/<mode>/obj/ holds the intermediates (the
-// modified logo and sound binaries, assembler logs and listings). The main ROM includes the modified logo and sound
-// binaries of its own mode (src/main.asm and src/hockey.asm pick the path from MODE), so those are built first.
+// output/<mode>/nhl92.bin is the ROM of each mode; output/obj/ is ONE shared folder for the intermediates (the
+// modified logo and sound binaries, the Z80 driver, assembler logs and listings), so src/main.asm, src/hockey.asm
+// and src/sound/sound.asm incbin them from a single fixed path. Every build empties output/obj/ first and rebuilds the
+// intermediates for its own mode before the main ROM, so nothing is reused from another mode's build. Builds share
+// output/obj/, so run them one after another (never two at once).
 const fs = require('fs');
 const path = require('path');
 const { spawn } = require('child_process');
@@ -22,10 +24,9 @@ const EXPANDING_ROM_FILL_HINT = 'the 512 KB fill in src/hockey.asm';
 const WIN = process.platform === 'win32';
 const EXE = path.join(ROOT, 'assembler', 'Assembler.exe');
 const MODES = {
-    // id is the MODE equate src/main.asm and src/hockey.asm use to include this mode's logo and sound binaries.
-    retail: { id: 0, rev: 0, checksum: 1, prebuild: 'retail', ref: 'retail' },
-    reva: { id: 1, rev: 1, checksum: 1, prebuild: 'reva', ref: 'reva' },
-    dev: { id: 2, rev: 1, checksum: 0, prebuild: 'dev', ref: null },
+    retail: { rev: 0, checksum: 1, prebuild: 'retail', ref: 'retail' },
+    reva: { rev: 1, checksum: 1, prebuild: 'reva', ref: 'reva' },
+    dev: { rev: 1, checksum: 0, prebuild: 'dev', ref: null },
 };
 
 const args = process.argv.slice(2);
@@ -33,7 +34,7 @@ const verbose = args.includes('--verbose');
 const modeName = args.find((a) => MODES[a]) || 'retail';
 const mode = MODES[modeName];
 const OUT = path.join(ROOT, 'output', modeName);
-const OBJ = path.join(OUT, 'obj');
+const OBJ = path.join(ROOT, 'output', 'obj');
 const ROM = 'nhl92.bin';
 const only = args.includes('--logo') ? 'logo' : args.includes('--sound') ? 'sound' : null;
 const rel = (p) => path.relative(ROOT, p).split(path.sep).join('/');
@@ -166,7 +167,7 @@ const node = async (script, argv) => {
     return r;
 };
 
-// The Z80 sound driver: asm80 (npm devDependency) assembles src/sound/z80_snd_drv.asm into obj/z80_snd_drv.bin,
+// The Z80 sound driver: asm80 (npm devDependency) assembles src/sound/z80_snd_drv.asm into output/obj/z80_snd_drv.bin,
 // which sound.asm includes; the result must equal the bytes extracted from the ROM ($116A6-$11C3D).
 async function buildZ80() {
     begin('z80');
@@ -195,7 +196,7 @@ async function buildZ80() {
 async function assemble(name, src, outBase, binExt, rev, checksum) {
     const asmArgs = ['/p', '/m', '/g', '/o', 'd-', '/o', 's-', '/o', 'r+', '/o', 'l+', '/o', 'l.', '/o', 'ow+', '/o', 'op-',
         '/o', 'os+', '/o', 'oz+', '/o', 'omq-', '/o', 'oaq+', '/o', 'osq+',
-        '/e', `REV=${rev}`, '/e', `CHECKSUM=${checksum}`, '/e', `MODE=${mode.id}`, `${src},${outBase}${binExt},${outBase},${outBase}`];
+        '/e', `REV=${rev}`, '/e', `CHECKSUM=${checksum}`, `${src},${outBase}${binExt},${outBase},${outBase}`];
     const r = await (WIN ? run(EXE, asmArgs, { cwd: path.join(ROOT, 'src') })
         : run('wine', [EXE, ...asmArgs], { cwd: path.join(ROOT, 'src'), env: { ...process.env, WINEDEBUG: '-all' } }));
     const base = path.join(ROOT, 'src', outBase.replace(/\\/g, '/'));
@@ -230,7 +231,7 @@ async function fixopcodes(name, a) {
 // The EA logo and the sound driver: assemble + fixopcodes as one step each.
 async function subBuild(name, src, base, ext, rev, checksum) {
     begin(name);
-    const a = await assemble(name, src, `..\\output\\${modeName}\\obj\\${base}`, ext, rev, checksum);
+    const a = await assemble(name, src, `..\\output\\obj\\${base}`, ext, rev, checksum);
     const f = await fixopcodes(name, a);
     step(name, `${a.errors} errors, ${a.warnings} warnings, ${a.lines} lines in ${a.secs}s, ${f.count} opcodes fixed${f.skipped ? `, ${f.skipped} skipped` : ''} -> ${rel(f.fixed)}`);
 }
@@ -257,7 +258,10 @@ async function subBuild(name, src, base, ext, rev, checksum) {
     steps = only === 'logo' ? 2 : only === 'sound' ? 3 : 7;
     const rev = mode.rev;
     const checksum = mode.checksum;
+    // output/obj/ is shared by all modes: empty it so this build cannot pick up another mode's intermediates.
+    fs.rmSync(OBJ, { recursive: true, force: true });
     fs.mkdirSync(OBJ, { recursive: true });
+    fs.mkdirSync(OUT, { recursive: true });
 
     // 1. prebuild: ROM check (path, SHA-1, size) and Extracted/ assets.
     {
@@ -270,7 +274,7 @@ async function subBuild(name, src, base, ext, rev, checksum) {
         detail(r.out);
     }
 
-    // 2-4. EA logo, Z80 sound driver and 68000 sound driver, included by the main ROM from output/<mode>/obj/.
+    // 2-4. EA logo, Z80 sound driver and 68000 sound driver, rebuilt into output/obj/ for this mode, included by the main ROM.
     if (only !== 'sound') await subBuild('logo', 'EALogo.asm', 'EALogo', '.bin', rev, checksum);
     if (only !== 'logo') await buildZ80();
     if (only !== 'logo') await subBuild('sound', 'sound\\sound.asm', 'Hockey', '.snd', rev, checksum);
@@ -278,7 +282,7 @@ async function subBuild(name, src, base, ext, rev, checksum) {
 
     // 5. assemble: the main ROM.
     begin('assemble');
-    const a = await assemble('assemble', 'hockey.asm', `..\\output\\${modeName}\\obj\\nhl92`, '.bin', rev, checksum);
+    const a = await assemble('assemble', 'hockey.asm', `..\\output\\obj\\nhl92`, '.bin', rev, checksum);
     step('assemble', `${a.errors} errors, ${a.warnings} warnings, ${a.lines} lines in ${a.secs}s (REV=${rev} CHECKSUM=${checksum}) -> ${rel(a.bin)}`);
 
     // 6. fixopcodes: the result is output/<mode>/nhl92.bin.

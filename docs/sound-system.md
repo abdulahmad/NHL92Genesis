@@ -61,7 +61,7 @@ Channel offsets (e.g., `fmtune_eop_ch0` at $10568): Words pointing to sequences 
 Sequences (`fmtune_seq0` at $1061E+): Byte streams for notes/rests ($00-$5F note/rest, $60 rest), commands ($80+ as in SFX but music-specific: $80 instr, $81 mod, $83 sustain, $84 loop, $85 stop, $86 env, $87 clear env, $88 pitch, $89 flag, $8A skip, $8B SFX). Durations $8C-$9F (multiplied by tempo).
 
 ## Z80 Snd Drv
-Source: [`src/sound/z80_snd_drv.asm`](../src/sound/z80_snd_drv.asm), assembled with asm80 by the build's `z80` step into `output/<mode>/obj/z80_snd_drv.bin` and included by `sound.asm` at `Z80_Program_Code` (ROM $116A6-$11C3D, $598 bytes). The build checks the assembled driver byte-for-byte against the ROM. `Sound_LoadZ80Program` copies only the first $597 bytes; the last byte ($6E, `Z80_DriverLastByte`) never reaches Z80 RAM. The prebuild still extracts the ROM bytes to `Extracted/Sound/z80_snd_drv.bin`, only as the reference for that check. The 68000 and Z80 sources use the same names for the shared bytes.
+Source: [`src/sound/z80_snd_drv.asm`](../src/sound/z80_snd_drv.asm), assembled with asm80 by the build's `z80` step into `output/obj/z80_snd_drv.bin` and included by `sound.asm` at `Z80_Program_Code` (ROM $116A6-$11C3D, $598 bytes). The build checks the assembled driver byte-for-byte against the ROM. `Sound_LoadZ80Program` copies only the first $597 bytes; the last byte ($6E, `Z80_DriverLastByte`) never reaches Z80 RAM. The prebuild still extracts the ROM bytes to `Extracted/Sound/z80_snd_drv.bin`, only as the reference for that check. The 68000 and Z80 sources use the same names for the shared bytes.
 
 Z80 RAM layout (names as in the source; the 68000 names from `sound.asm` are used for the shared bytes):
 

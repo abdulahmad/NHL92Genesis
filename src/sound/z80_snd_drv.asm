@@ -4,7 +4,7 @@
 ; Source for the Z80 program that Sound_LoadZ80Program (src/sound/sound.asm)
 ; copies into Z80 RAM at $0000 ($A00000 on the 68000 side). In the retail ROM
 ; these bytes sit at $116A6-$11C3D (Z80_Program_Code). Built with asm80
-; (npm package, see README) into output/<mode>/obj/z80_snd_drv.bin, which
+; (npm package, see README) into output/obj/z80_snd_drv.bin, which
 ; sound.asm includes in place of the bytes that used to be extracted from the ROM.
 ;
 ; What the driver does
