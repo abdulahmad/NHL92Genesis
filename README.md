@@ -2,7 +2,7 @@
 
 > **📀 Game data is not included.** This repository has the assembly code only. The graphics, palettes, EA logo, sound samples and sound effects are extracted from your own copy of the original ROM when you build, and are not in the repo. You need the retail NHL Hockey (NHL 92) Genesis ROM (and the Rev A ROM for that build), with the file names and SHA-1s listed under [Instructions](#instructions), or the build stops.
 
-> **🤝 Making a mod, hack, port or other derivative work from this repo? You must credit me (abdulahmad) and everyone credited in this repo, clearly, in your own repo and in every release. See [Credits and derivative works](#credits-and-derivative-works).**
+> **🤝 Making a mod, hack, port or other derivative work from this repo? You must credit me and everyone credited in this repo, clearly, in your own repo and in every release. See [Credits and derivative works](#credits-and-derivative-works).**
 
 Bitwise perfect compilable assembly of NHL Hockey (aka NHL 92) for Sega Genesis. Includes fully disassembled sound driver. Requires original ROM file to build.
 
@@ -88,10 +88,10 @@ This project is AI-assisted. The work is directed by a strict ruleset and curate
 
 Thanks to McMarkis (Mhopkinsinc), whose NHLHockey source this build is built on.
 
-This project is the result of my work (abdulahmad) and the work of the people credited above. If you build anything from it, including mods, ROM or EXE hacks, ports, released forks, tools, or any other derivative work, you must credit us:
+This project is the result of my work and the work of the people credited above. If you build anything from it, including mods, ROM or EXE hacks, ports, released forks, tools, or any other derivative work, you must credit us:
 
 - Put the credit in your repo's README, near the top and not buried in a footer, and in the notes of every release you publish, including any text file shipped inside a release archive.
-- Name me (abdulahmad) and link to this repository.
+- Name me and link to this repository.
 - Name everyone credited here: McMarkis (Mhopkinsinc).
 - If you only use part of this repo (docs, a tool, labels, a file format description), the credit still applies.
 - If you are unsure, over-credit.
